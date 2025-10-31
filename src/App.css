@@ -122,7 +122,7 @@ main section {
 
 #first h1 {
   color: #ffffff;
-  font-size: 4.5rem;
+  font-size: 4.5em;
   font-weight: 300;
   display: block;
 }
@@ -155,7 +155,7 @@ main section {
 
 #first p {
   color: #ffffff;
-  font-size: 2.5rem;
+  font-size: 2.5em;
   font-weight: 300;
   margin-top: 20px;
   width: 80%;
@@ -173,7 +173,7 @@ main section {
 }
 
 .blue i {
-  font-size: 1.5rem;
+  font-size: 1.5em;
   position: absolute;
   bottom: 0;
   right: 0;
@@ -186,7 +186,7 @@ main section {
   right: 50%;
   transform: translate(50%, 30%) rotate(30deg);
   color: #ffffff;
-  font-size: 2rem;
+  font-size: 2em;
   opacity: 1;
 }
 
@@ -242,7 +242,7 @@ main section {
 
 #first li h3 {
   color: white;
-  font-size: 2rem;
+  font-size: 2em;
   font-weight: 300;
   z-index: 2;
   user-select: none;
@@ -295,7 +295,7 @@ main section {
 
 #second h1 {
   color: white;
-  font-size: 4.5rem;
+  font-size: 4.5em;
   font-weight: 300;
   text-align: center;
 }
@@ -304,14 +304,14 @@ main section {
   text-align: center;
   color: white;
   font-weight: 300;
-  font-size: 2.5rem;
+  font-size: 2.5em;
 }
 
 #second h3 {
   text-align: center;
   color: white;
   font-weight: 300;
-  font-size: 1.5rem;
+  font-size: 1.5em;
 }
 
 #red {
@@ -341,7 +341,7 @@ main section {
 .logo h3 {
   color: white;
   font-weight: 500;
-  font-size: 1.5rem;
+  font-size: 1.5em;
 }
 
 .logo::before {
@@ -382,7 +382,7 @@ main section {
 
 #third h1 {
   color: white;
-  font-size: 4.5rem;
+  font-size: 4.5em;
   font-weight: 300;
   text-align: center;
 }
@@ -391,7 +391,7 @@ main section {
   text-align: center;
   color: white;
   font-weight: 300;
-  font-size: 2.5rem;
+  font-size: 2.5em;
 }
 
 #purple {
@@ -435,7 +435,7 @@ main section {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   border: 1px solid #c085ff;
-  border-radius: 1rem;
+  border-radius: 15px;
 }
 
 .flipCardFront {
@@ -473,7 +473,7 @@ main section {
 
 .cardTitle {
   color: white;
-  font-size: 1.5rem;
+  font-size: 1.5em;
   font-weight: 500;
   margin: 0;
   background-color: #c085ff;
@@ -502,7 +502,7 @@ main section {
 }
 
 .flipCardBack p {
-  font-size: 1.2rem;
+  font-size: 1.2em;
   font-weight: 300;
   margin: 0;
   text-align: left;
@@ -512,7 +512,7 @@ main section {
   text-decoration: none;
   color: white;
   font-weight: 300;
-  font-size: 1.5rem;
+  font-size: 1.5em;
   padding: 5px;
   background-color: #c085ff;
   border-radius: 5px;
@@ -528,7 +528,7 @@ main section {
 
 #fourth h1 {
   color: white;
-  font-size: 4.5rem;
+  font-size: 4.5em;
   font-weight: 300;
   text-align: center;
 }
@@ -537,7 +537,7 @@ main section {
   text-align: center;
   color: white;
   font-weight: 300;
-  font-size: 2.5rem;
+  font-size: 2.5em;
 }
 
 #green {
@@ -572,7 +572,7 @@ main section {
   height: 60px;
   border-radius: 50%;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.5em;
   cursor: pointer;
   border: 2px solid rgb(120, 202, 131);
   z-index: 5;
@@ -641,11 +641,11 @@ main section {
 }
 
 #description h3 {
-  font-size: 3rem;
+  font-size: 3em;
   font-weight: 500;
 }
 #description p {
-  font-size: 1.5rem;
+  font-size: 1.5em;
 }
 
 #fifth {
@@ -660,7 +660,7 @@ main section {
 
 #fifth h1 {
   color: white;
-  font-size: 4.5rem;
+  font-size: 4.5em;
   font-weight: 300;
   text-align: center;
 }
@@ -669,7 +669,7 @@ main section {
   text-align: center;
   color: white;
   font-weight: 300;
-  font-size: 2.5rem;
+  font-size: 2.5em;
 }
 
 #yellow {
@@ -692,7 +692,7 @@ main section {
 #fifth li {
   color: white;
   list-style: none;
-  font-size: 2rem;
+  font-size: 2em;
   display: flex;
   align-items: center;
   line-height: 100%;
@@ -700,12 +700,12 @@ main section {
   border: 2px solid transparent;
 }
 #fifth li p {
-  font-size: 1.5rem;
+  font-size: 1.5em;
 }
 
 #credits {
   color: white;
-  font-size: 1.3rem;
+  font-size: 1.3em;
 }
 
 #socialCards li {
@@ -745,7 +745,7 @@ main section {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 1.5rem;
+  font-size: 1.5em;
   border-radius: 50%;
   cursor: pointer;
   transition: 0.3s;
