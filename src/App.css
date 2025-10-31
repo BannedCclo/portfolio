@@ -4,6 +4,10 @@ body {
   width: 100vw;
 }
 
+#mobileBlocker {
+  display: none;
+}
+
 #bubble {
   position: fixed;
   left: 0;
@@ -540,15 +544,232 @@ main section {
   color: #67ff67;
 }
 
+#sliderContainer {
+  display: flex;
+  margin-top: 50px;
+  align-items: center;
+}
+
 #slider {
-  padding-top: 50px;
-  width: 40vw;
+  display: flex;
+  width: 35vw;
+  overflow-x: scroll;
+  gap: 100px;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+#slider::-webkit-scrollbar {
+  display: none;
+}
+
+#rightBtn,
+#leftBtn {
+  color: white;
+  background-color: #008500;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border: 2px solid rgb(120, 202, 131);
+  z-index: 5;
+  translate: 10%;
+  transition: 0.3s;
+}
+#leftBtn {
+  translate: -10%;
+}
+
+#slider::scroll-button(right):disabled,
+#slider::scroll-button(left):disabled {
+  opacity: 0.5;
+  cursor: auto;
+}
+
+#rightBtn:hover,
+#leftBtn:hover {
+  scale: 1.05;
+}
+
+#rightBtn:active,
+#leftBtn:active {
+  scale: 0.95;
 }
 
 .project {
-  width: 100%;
+  scroll-snap-align: start;
+  flex: 0 0 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  border: 2px solid rgb(120, 202, 131);
+  border-radius: 10px;
+  transition: 0.3s;
+}
+
+.project:hover {
+  background-color: rgba(0, 126, 10, 0.5);
+  & img,
+  #description {
+    scale: 0.95;
+  }
 }
 
 .project img {
   width: 100%;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.project #description {
+  color: white;
+  width: 100%;
+  border-radius: 5px;
+  border: 2px solid rgb(120, 202, 131);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgb(49, 124, 49);
+  transition: 0.3s;
+}
+
+#description h3 {
+  font-size: 3rem;
+  font-weight: 500;
+}
+#description p {
+  font-size: 1.5rem;
+}
+
+#fifth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 50px;
+  box-sizing: border-box;
+  justify-content: space-between;
+  position: relative;
+}
+
+#fifth h1 {
+  color: white;
+  font-size: 4.5rem;
+  font-weight: 300;
+  text-align: center;
+}
+
+#fifth h2 {
+  text-align: center;
+  color: white;
+  font-weight: 300;
+  font-size: 2.5rem;
+}
+
+#yellow {
+  color: #fcff67;
+}
+
+#contact {
+  display: flex;
+  justify-content: space-between;
+  width: 50%;
+  position: relative;
+}
+
+#fifth ul {
+  display: flex;
+  flex-flow: column;
+  gap: 50px;
+}
+
+#fifth li {
+  color: white;
+  list-style: none;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  line-height: 100%;
+  padding: 10px;
+  border: 2px solid transparent;
+}
+#fifth li p {
+  font-size: 1.5rem;
+}
+
+#credits {
+  color: white;
+  font-size: 1.3rem;
+}
+
+#socialCards li {
+  box-sizing: border-box !important;
+  border-radius: 10px;
+  background-color: #6c6d1a;
+  border: 2px solid #fcff67;
+  gap: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#socialCards li:hover,
+#back:hover {
+  background-color: #343500;
+  color: #fcff67;
+  box-shadow: 0 0 15px 5px #fcff67;
+}
+
+#socialCards li:active,
+#back:active {
+  scale: 0.95;
+  color: #feffc0;
+  background-color: #5c5e00;
+  box-shadow: 0 0 30px 2px #fcff67;
+}
+
+#back {
+  position: absolute;
+  bottom: 50px;
+  right: 50px;
+  background-color: #6c6d1a;
+  color: white;
+  border: 2px solid #fcff67;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: 0.3s;
+  text-decoration: none;
+}
+
+@media (max-width: 1024px) {
+  #mobileBlocker {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #0b1731;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 10000;
+  }
+  section {
+    display: none;
+  }
 }

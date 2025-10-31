@@ -22,10 +22,14 @@ import pythonBanner from "./assets/images/pythonBanner.png";
 import cotemigBanner from "./assets/images/cotemigBanner.jpg";
 import noharmBanner from "./assets/images/noharmBanner.png";
 import physix from "./assets/images/physix.png";
+import carbon from "./assets/images/carbon.png";
+import noharmhome from "./assets/images/noharmhome.png";
+import guestlist from "./assets/images/guestlist.png";
 
 export default function App() {
   const bubbleRef = useRef<HTMLDivElement | null>(null);
   const mainRef = useRef<HTMLDivElement | null>(null);
+  const sliderRef = useRef<HTMLDivElement | null>(null);
 
   const { ref: blueRef, inView: inViewBlue } = useInView({ threshold: 0.5 });
   const { ref: redRef, inView: inViewRed } = useInView({ threshold: 0.5 });
@@ -95,6 +99,12 @@ export default function App() {
 
   return (
     <>
+      <div id="mobileBlocker">
+        <h1>
+          Para a sua melhor experiência, esse website deve ser aberto na tela de
+          um computador.
+        </h1>
+      </div>
       <main ref={mainRef}>
         <div id="bubble" ref={bubbleRef} aria-hidden="true">
           <div className="shape" />
@@ -353,13 +363,176 @@ export default function App() {
             Aqui estão as <span id="green">ideias</span> que ajudei a
             desenvolver
           </h2>
-          <div id="slider">
-            <div className="project">
-              <img src={physix} alt="" />
+          <div id="sliderContainer">
+            <button
+              id="leftBtn"
+              onClick={() => {
+                if (sliderRef.current) {
+                  sliderRef.current.scrollBy({
+                    left: -900,
+                    behavior: "smooth",
+                  });
+                }
+              }}
+            >
+              ⭠
+            </button>
+            <div id="slider" ref={sliderRef}>
+              <div
+                className="project"
+                onClick={() => {
+                  window.open(
+                    "https://github.com/ArthurAnicio/PhysiX.git",
+                    "_blank"
+                  );
+                }}
+              >
+                <img src={physix} alt="" />
+                <div id="description">
+                  <h3>Physix</h3>
+                  <p>Website focado no estudo de física</p>
+                </div>
+              </div>
+              <div
+                className="project"
+                onClick={() => {
+                  window.open(
+                    "https://github.com/BannedCclo/Carbon.git",
+                    "_blank"
+                  );
+                }}
+              >
+                <img src={carbon} alt="" />
+                <div id="description">
+                  <h3>Carbon</h3>
+                  <p>Loja online de carros de luxo</p>
+                </div>
+              </div>
+              <div
+                className="project"
+                onClick={() => {
+                  window.open(
+                    "https://github.com/noharm-ai/backend.git",
+                    "_blank"
+                  );
+                }}
+              >
+                <img src={noharmhome} alt="" />
+                <div id="description">
+                  <h3>NoHarm</h3>
+                  <p>Plataforma de IA para saúde</p>
+                </div>
+              </div>
+              <div
+                className="project"
+                onClick={() => {
+                  window.open(
+                    "https://github.com/BannedCclo/guestlist.git",
+                    "_blank"
+                  );
+                }}
+              >
+                <img src={guestlist} alt="" />
+                <div id="description">
+                  <h3>Guestlist</h3>
+                  <p>Automação de lista de convidados</p>
+                </div>
+              </div>
             </div>
+            <button
+              id="rightBtn"
+              onClick={() => {
+                if (sliderRef.current) {
+                  sliderRef.current.scrollBy({
+                    left: 900,
+                    behavior: "smooth",
+                  });
+                }
+              }}
+            >
+              ⭢
+            </button>
           </div>
         </section>
-        <section id="fifth" className="page" ref={yellowRef}></section>
+        <section id="fifth" className="page" ref={yellowRef}>
+          <div>
+            <h1>Contato</h1>
+            <h2>
+              Saiba como <span id="yellow">comunicar</span> comigo
+            </h2>
+          </div>
+          <div id="contact">
+            <div id="socialTitles">
+              <ul>
+                <li>LinkedIn:</li>
+                <li>WhatsApp:</li>
+                <li>Instagram:</li>
+                <li>Gmail:</li>
+                <li>GitHub:</li>
+              </ul>
+            </div>
+            <div id="socialCards">
+              <ul>
+                <li
+                  onClick={() => {
+                    window.open(
+                      "https://www.linkedin.com/in/marcelo-guimar%C3%A3es-34aa98264/",
+                      "_blank"
+                    );
+                  }}
+                >
+                  <i className="fa-brands fa-linkedin-in"></i>
+                  <p>Marcelo Guimarães</p>
+                </li>
+                <li
+                  onClick={() => {
+                    window.open("https://wa.me/5531999444675", "_blank");
+                  }}
+                >
+                  <i className="fa-brands fa-whatsapp"></i>
+                  <p>+55 (31) 99944-4675</p>
+                </li>
+                <li
+                  onClick={() => {
+                    window.open(
+                      "https://www.instagram.com/not_cecelo/?next=%2F",
+                      "_blank"
+                    );
+                  }}
+                >
+                  <i className="fa-brands fa-instagram"></i>
+                  <p>@not_cecelo</p>
+                </li>
+                <li
+                  onClick={() => {
+                    window.open(
+                      "https://mail.google.com/mail/?view=cm&fs=1&to=marcelosg909@gmail.com",
+                      "_blank"
+                    );
+                  }}
+                >
+                  <i className="fa-regular fa-envelope"></i>
+                  <p>marcelosg909@gmail.com</p>
+                </li>
+                <li
+                  onClick={() => {
+                    window.open("https://github.com/BannedCclo", "_blank");
+                  }}
+                >
+                  <i className="fa-brands fa-github"></i>
+                  <p>BannedCclo</p>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div id="credits">
+            Pensado e desenvolvido por {""}
+            <span id="yellow">Marcelo Guimarães</span>
+          </div>
+          <a id="back" href="#first">
+            ⭡
+          </a>
+        </section>
       </main>
     </>
   );
