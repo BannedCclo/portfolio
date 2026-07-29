@@ -1,0 +1,84 @@
+/* ===========================================================
+   stack — tools, by category
+
+   Deliberate restraint right after the gallery's weight: no 3D, no pin, just
+   a well-set list. The only motion is a staggered reveal and a rule that
+   lights on hover.
+   =========================================================== */
+
+.stack__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-8) var(--sp-7);
+}
+@media (min-width: 640px) {
+  .stack__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 980px) {
+  .stack__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stack__group h3 {
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--copper);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--hairline-strong);
+  margin-bottom: var(--sp-4);
+}
+
+.stack__group ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.stack__group li {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: var(--fs-3);
+  color: var(--ink-dim);
+  padding: 0.55em 0 0.55em var(--sp-4);
+  border-bottom: 1px solid var(--hairline);
+  transition: color var(--dur-fast) var(--ease-out-expo);
+
+  /* staggered entrance, one property per axis: rise + fade together */
+  opacity: 0;
+  transform: translateY(10px);
+}
+.stack__group li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 1px;
+  background: var(--ink-mute);
+  transform: translateY(-50%);
+  transition:
+    width var(--dur-fast) var(--ease-out-expo),
+    background var(--dur-fast) var(--ease-out-expo);
+}
+.stack__group li:hover {
+  color: var(--ink);
+}
+.stack__group li:hover::before {
+  width: 12px;
+  background: var(--copper);
+}
+
+.stack.is-revealed .stack__group li {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.7s var(--ease-out-expo),
+    transform 0.7s var(--ease-out-expo),
+    color var(--dur-fast) var(--ease-out-expo);
+  transition-delay: calc(var(--i, 0) * 45ms);
+}

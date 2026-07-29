@@ -1,0 +1,540 @@
+/* ===========================================================
+   acts/hero.js — the brain sequence
+
+   A real MRI-derived brain mesh (Nevit Dilmen, Wikimedia Commons,
+   CC BY-SA 3.0 / GFDL — attribution lives in the page footer and is a
+   condition of the licence, so it must not be dropped).
+
+   Choreography, as fractions of the pinned section's 0..1 progress:
+   the brain drifts in blurred and distant behind the title card, tilts and
+   zooms into its settled top-down pose during "approach", then holds while
+   three text pages take turns recomposing it into distinct side views, and
+   finally the camera pushes in while the scene dissolves to the page
+   background — so it disappears just before the camera would reach it.
+
+   DOM lookups and listeners live inside initHero() rather than at module
+   scope: this module is imported (and evaluated) the moment React starts
+   building the bundle, well before <Hero>'s JSX has actually rendered
+   #brain and friends into the document. Three.js objects that don't need
+   the DOM — geometry, materials, the GLB fetch — stay at module scope so a
+   React StrictMode double-invoke of the effect doesn't re-fetch or rebuild
+   them; initHero() itself returns a cleanup that reverses everything that
+   *does* touch the DOM or the shared stage.
+   =========================================================== */
+
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { camera, registerAct, unregisterAct, quality } from "../stage.js";
+import { ScrollTrigger } from "../../lib/gsap.js";
+import {
+  clamp01,
+  smoothstep,
+  lerp,
+  deg,
+  sampleCurve,
+  damp,
+} from "../../lib/motion.js";
+
+const reduceMotion = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+).matches;
+
+export const brainGroup = new THREE.Group();
+
+export const tissueMat = new THREE.MeshPhysicalMaterial({
+  color: 0xc9bcae,
+  roughness: 0.72,
+  metalness: 0,
+  clearcoat: 0.08,
+  clearcoatRoughness: 0.55,
+  sheen: 0.15,
+  sheenColor: new THREE.Color(0xc97c4b),
+  envMapIntensity: 0.55,
+  side: THREE.DoubleSide,
+});
+
+let brainMesh = null;
+let synapseMesh = null;
+/** resolved once the mesh is ready, so the finale act can reuse the geometry */
+export let brainGeometryReady = null;
+
+/* ---------------------------------------------------------------
+   synapse / electricity overlay
+--------------------------------------------------------------- */
+const noiseGLSL = `
+  vec3 mod289(vec3 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+  vec4 mod289(vec4 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+  vec4 permute(vec4 x){ return mod289(((x*34.0)+1.0)*x); }
+  vec4 taylorInvSqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314 * r; }
+  float snoise(vec3 v){
+    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    vec3 i  = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+    i = mod289(i);
+    vec4 p = permute(permute(permute(
+              i.z + vec4(0.0, i1.z, i2.z, 1.0))
+            + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+            + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j - 7.0 * x_);
+    vec4 x = x_ *ns.x + ns.yyyy;
+    vec4 y = y_ *ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    vec4 s0 = floor(b0)*2.0 + 1.0;
+    vec4 s1 = floor(b1)*2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+    vec3 p0 = vec3(a0.xy, h.x);
+    vec3 p1 = vec3(a0.zw, h.y);
+    vec3 p2 = vec3(a1.xy, h.z);
+    vec3 p3 = vec3(a1.zw, h.w);
+    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+    m = m * m;
+    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+  }
+`;
+
+// independent "transmission" flashes — each a quick point of light darting
+// along a short fixed stretch of surface, on its own repeating schedule
+const FLASH_COUNT = quality.flashes;
+
+export const synapseMat = new THREE.ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  uniforms: {
+    uTime: { value: 0 },
+    uActivation: { value: 0 },
+    uColorA: { value: new THREE.Color(0xffb27a) },
+    uColorB: { value: new THREE.Color(0x8fd6e6) },
+    uFlashA: {
+      value: Array.from(
+        { length: FLASH_COUNT },
+        () => new THREE.Vector3(0, 1, 0),
+      ),
+    },
+    uFlashB: {
+      value: Array.from(
+        { length: FLASH_COUNT },
+        () => new THREE.Vector3(0, 1, 0),
+      ),
+    },
+    uFlashSeed: { value: new Array(FLASH_COUNT).fill(0) },
+  },
+  vertexShader: `
+    varying vec3 vDir;
+    void main(){
+      vDir = normalize(position);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float uTime;
+    uniform float uActivation;
+    uniform vec3 uColorA;
+    uniform vec3 uColorB;
+    uniform vec3 uFlashA[${FLASH_COUNT}];
+    uniform vec3 uFlashB[${FLASH_COUNT}];
+    uniform float uFlashSeed[${FLASH_COUNT}];
+    varying vec3 vDir;
+    ${noiseGLSL}
+
+    // a single quick pulse of light travelling a short arc between two nearby
+    // surface points, firing on its own random repeating schedule — reads as a
+    // signal darting across a short stretch rather than an ambient glow
+    float synapseFlash(vec3 dir, vec3 a, vec3 b, float seed){
+      float period = 2.6 + fract(seed * 12.9898) * 3.4;
+      float duration = 0.42;
+      float localT = mod(uTime + seed * 7.13, period);
+      if(localT > duration) return 0.0;
+      float travel = smoothstep(0.0, 1.0, localT / duration);
+      vec3 ab = b - a;
+      float abLenSq = max(dot(ab, ab), 1e-5);
+      float s = clamp(dot(dir - a, ab) / abLenSq, 0.0, 1.0);
+      vec3 closest = a + ab * s;
+      float band = smoothstep(0.05, 0.0, distance(dir, closest));
+      float behind = travel - s;
+      float trail = behind >= 0.0 ? smoothstep(0.3, 0.0, behind) : 0.0;
+      return band * trail;
+    }
+
+    void main(){
+      vec3 vDirN = normalize(vDir);
+      vec3 p = vDirN * 3.4;
+      float n1 = snoise(p + vec3(0.0, 0.0, uTime*0.06));
+      float n2 = snoise(p*2.15 + vec3(50.0, 12.0, 4.0));
+      float veinsA = smoothstep(0.055, 0.0, abs(n1));
+      float veinsB = smoothstep(0.038, 0.0, abs(n2));
+      float veins = clamp(veinsA + veinsB*0.6, 0.0, 1.0);
+
+      float flicker = 0.5 + 0.5*sin(uTime*3.4 + n1*18.0 + n2*9.0);
+      float colorMix = smoothstep(-0.2, 0.2, n2);
+      vec3 col = mix(uColorA, uColorB, colorMix);
+
+      float intensity = veins * (0.4 + 0.6*flicker) * uActivation * 1.9;
+
+      float flash = 0.0;
+      for(int i = 0; i < ${FLASH_COUNT}; i++){
+        flash += synapseFlash(vDirN, uFlashA[i], uFlashB[i], uFlashSeed[i]);
+      }
+      flash = clamp(flash, 0.0, 1.0);
+      col = mix(col, vec3(1.0), flash * 0.6);
+      intensity += flash * uActivation * 2.4;
+
+      gl_FragColor = vec4(col * intensity, intensity);
+    }
+  `,
+});
+
+/* ---------------------------------------------------------------
+   mesh loading
+
+   The geometry arrives already oriented, clipped, welded, smoothed, centred
+   and scaled — all of it baked offline by tools/bake-brain.mjs. That work used
+   to run here, in the browser, on the main thread, on every load: 4 MB of raw
+   STL, a weld of ~242k loose vertices and fourteen Taubin smoothing passes.
+   It is entirely deterministic, so the browser has no business repeating it.
+   Re-run `npm run bake-brain` if the source mesh or its cleanup ever changes.
+--------------------------------------------------------------- */
+brainGeometryReady = new Promise((resolve, reject) => {
+  new GLTFLoader().load(
+    "/assets/brain.glb",
+    (gltf) => {
+      let geometry = null;
+      gltf.scene.traverse((o) => {
+        if (!geometry && o.isMesh) geometry = o.geometry;
+      });
+      if (!geometry) {
+        reject(new Error("assets/brain.glb nao contem nenhuma malha"));
+        return;
+      }
+
+      brainMesh = new THREE.Mesh(geometry, tissueMat);
+      brainGroup.add(brainMesh);
+
+      synapseMesh = new THREE.Mesh(geometry, synapseMat);
+      synapseMesh.scale.setScalar(1.006);
+      synapseMesh.visible = false;
+      brainGroup.add(synapseMesh);
+
+      // seed the transmission flashes with real surface points: each is a
+      // short arc from a random vertex to a nearby jittered direction, in the
+      // same normalize(position) domain the shader works in
+      const posAttr = geometry.attributes.position;
+      const flashA = [];
+      const flashB = [];
+      const flashSeed = [];
+      const FLASH_ARC_ANGLE = 0.22; // radians — keeps each flash short
+      for (let i = 0; i < FLASH_COUNT; i++) {
+        const idx = Math.floor(Math.random() * posAttr.count);
+        const a = new THREE.Vector3()
+          .fromBufferAttribute(posAttr, idx)
+          .normalize();
+        const axis = new THREE.Vector3(
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+          Math.random() - 0.5,
+        )
+          .cross(a)
+          .normalize();
+        const angle = (0.5 + Math.random() * 0.5) * FLASH_ARC_ANGLE;
+        const b = a.clone().applyAxisAngle(axis, angle).normalize();
+        flashA.push(a);
+        flashB.push(b);
+        flashSeed.push(Math.random() * 100);
+      }
+      synapseMat.uniforms.uFlashA.value = flashA;
+      synapseMat.uniforms.uFlashB.value = flashB;
+      synapseMat.uniforms.uFlashSeed.value = flashSeed;
+
+      resolve(geometry);
+    },
+    undefined,
+    (err) => {
+      console.error("Falha ao carregar /assets/brain.glb:", err);
+      reject(err);
+    },
+  );
+});
+
+/* ---------------------------------------------------------------
+   scroll phases
+--------------------------------------------------------------- */
+export const PHASE = {
+  approachEnd: 0.22,
+  pages: [
+    [0.24, 0.42],
+    [0.45, 0.63],
+    [0.66, 0.84],
+  ],
+  exitStart: 0.88,
+};
+
+let progress = reduceMotion ? 0.3 : 0;
+
+const BRAIN_BLUR_MAX = 3; // px
+
+// populated by initHero() once #brain and friends exist in the DOM
+let section, stageEl, titleScreenEl, hintEl, progressEl, exitFadeEl, pageEls;
+
+function onProgress(p) {
+  progress = p;
+  hintEl.style.opacity = p < 0.04 ? 1 : 0;
+  progressEl.style.setProperty("--p", p);
+
+  pageEls.forEach((el, i) => {
+    const [start, end] = PHASE.pages[i];
+    el.classList.toggle("is-visible", p >= start && p <= end);
+  });
+
+  // the brain starts discreetly blurred and sharpens in step with the same
+  // ease driving the approach, finishing exactly as it settles
+  const approachEase = smoothstep(clamp01(p / PHASE.approachEnd));
+  stageEl.style.filter = `blur(${BRAIN_BLUR_MAX * (1 - approachEase)}px)`;
+
+  // the name card lives entirely in that blurred, distant opening beat
+  titleScreenEl.style.opacity = 1 - approachEase;
+}
+
+/* ---------------------------------------------------------------
+   per-page staging
+
+   Page 0 (the intro) holds the exact centred pose the approach settles into.
+   Page 1 pitches down to an upright 3/4 lean showing its right side; page 2
+   turns the other way with slightly more pitch for a left profile. The camera
+   also drops toward the brain's own height on those pages — without that, a
+   camera sitting high and looking down turns any yaw into a turntable spin
+   and you never actually see the side.
+--------------------------------------------------------------- */
+const TILT_TARGET_DEG = 68;
+const YAW_TARGET_DEG = 0;
+
+const KF = {
+  yaw: [
+    [PHASE.approachEnd, YAW_TARGET_DEG],
+    [PHASE.pages[0][0], YAW_TARGET_DEG],
+    [PHASE.pages[0][1], YAW_TARGET_DEG],
+    [PHASE.pages[1][0], 62],
+    [PHASE.pages[1][1], 62],
+    [PHASE.pages[2][0], -76],
+    [PHASE.pages[2][1], -76],
+    [PHASE.exitStart, YAW_TARGET_DEG],
+  ],
+  tilt: [
+    [PHASE.approachEnd, TILT_TARGET_DEG],
+    [PHASE.pages[0][0], TILT_TARGET_DEG],
+    [PHASE.pages[0][1], TILT_TARGET_DEG],
+    [PHASE.pages[1][0], 9],
+    [PHASE.pages[1][1], 9],
+    [PHASE.pages[2][0], 15],
+    [PHASE.pages[2][1], 15],
+    [PHASE.exitStart, TILT_TARGET_DEG],
+  ],
+  roll: [
+    [PHASE.approachEnd, 0],
+    [PHASE.pages[0][0], 0],
+    [PHASE.pages[0][1], 0],
+    [PHASE.pages[1][0], 6],
+    [PHASE.pages[1][1], 6],
+    [PHASE.pages[2][0], -8],
+    [PHASE.pages[2][1], -8],
+    [PHASE.exitStart, 0],
+  ],
+  offsetX: [
+    [PHASE.approachEnd, 0],
+    [PHASE.pages[0][0], 0],
+    [PHASE.pages[0][1], 0],
+    [PHASE.pages[1][0], 1.35],
+    [PHASE.pages[1][1], 1.35],
+    [PHASE.pages[2][0], -1.3],
+    [PHASE.pages[2][1], -1.3],
+    [PHASE.exitStart, 0],
+  ],
+  scale: [
+    [PHASE.approachEnd, 1],
+    [PHASE.pages[0][0], 1],
+    [PHASE.pages[0][1], 1],
+    [PHASE.pages[1][0], 1.06],
+    [PHASE.pages[1][1], 1.06],
+    [PHASE.pages[2][0], 0.93],
+    [PHASE.pages[2][1], 0.93],
+    [PHASE.exitStart, 1],
+  ],
+  camY: [
+    [PHASE.approachEnd, 0],
+    [PHASE.pages[0][0], 0],
+    [PHASE.pages[0][1], 0],
+    [PHASE.pages[1][0], -1.6],
+    [PHASE.pages[1][1], -1.6],
+    [PHASE.pages[2][0], -1.35],
+    [PHASE.pages[2][1], -1.35],
+    [PHASE.exitStart, 0],
+  ],
+};
+
+const pose = {
+  yaw: YAW_TARGET_DEG,
+  tilt: TILT_TARGET_DEG,
+  roll: 0,
+  offsetX: 0,
+  scale: 1,
+  camY: 0,
+  exit: 0,
+};
+
+const camStart = new THREE.Vector3(0, 0.25, 8.1);
+const camEnd = new THREE.Vector3(0, 2.0, 6.7);
+const camDeep = new THREE.Vector3(0, 2.0, 1.0); // exit: keeps closing in toward the brain
+
+let mouseX = 0;
+let mouseY = 0;
+
+let idleYaw = 0;
+const IDLE_YAW_MAX = Math.PI * 2; // at most one full turn before the approach takes over
+
+const camPos = new THREE.Vector3();
+
+/** set on the registered act so the director can drop the canvas — see below */
+let act = null;
+
+function update(t, dt) {
+  // Release the canvas once there is nothing left to show. Two conditions,
+  // because each covers a case the other misses: the sequence having run out
+  // (the exit overlay is opaque by then, so the brain is already invisible),
+  // and the section simply not being on screen — which is the only signal
+  // available under reduced motion, where no pin exists and progress is
+  // frozen at a static pose forever.
+  if (act) {
+    const rect = section.getBoundingClientRect();
+    const onScreen = rect.bottom > 0 && rect.top < window.innerHeight;
+    act.wantsRender = progress < 0.995 && onScreen;
+    if (!act.wantsRender) return;
+  }
+
+  const approachRaw = clamp01(progress / PHASE.approachEnd);
+  const ease = smoothstep(approachRaw);
+  const exitEase = smoothstep(
+    clamp01((progress - PHASE.exitStart) / (1 - PHASE.exitStart)),
+  );
+
+  if (!reduceMotion) {
+    idleYaw = Math.min(
+      idleYaw + dt * (0.045 + (1 - ease) * 0.03),
+      IDLE_YAW_MAX,
+    );
+  }
+
+  for (const key in KF) {
+    pose[key] = damp(pose[key], sampleCurve(progress, KF[key]), dt);
+  }
+  pose.exit = damp(pose.exit, exitEase, dt);
+
+  // narrower frames get a smaller lateral step so the brain stays on screen
+  const aspectFactor = clamp01(camera.aspect / 1.4);
+
+  brainGroup.rotation.x = ease * deg(pose.tilt);
+  brainGroup.rotation.y = idleYaw * (1 - ease) + ease * deg(pose.yaw);
+  brainGroup.rotation.z = ease * deg(pose.roll);
+  brainGroup.position.x = pose.offsetX * aspectFactor;
+  brainGroup.position.z = lerp(-0.35, 0.4, ease);
+  brainGroup.scale.setScalar(lerp(0.86, 1.0, ease) * lerp(1, pose.scale, ease));
+
+  camPos.lerpVectors(camStart, camEnd, ease);
+  camPos.lerp(camDeep, pose.exit);
+  camPos.y += pose.camY * ease;
+  if (!reduceMotion) {
+    camPos.x += mouseX * 0.16 + Math.sin(t * 0.15) * 0.04;
+    camPos.y += -mouseY * 0.1 + Math.cos(t * 0.12) * 0.03;
+  }
+  camera.position.copy(camPos);
+  camera.lookAt(0, -0.18, 0);
+
+  // dissolve to the page background slightly ahead of the camera's own damped
+  // push-in, so the brain is gone before the camera would arrive
+  exitFadeEl.style.opacity = smoothstep(clamp01(pose.exit / 0.7));
+
+  const activation = smoothstep((approachRaw - 0.55) / (0.94 - 0.55));
+  synapseMat.uniforms.uTime.value = t;
+  synapseMat.uniforms.uActivation.value = activation;
+  if (synapseMesh) synapseMesh.visible = activation > 0.001;
+}
+
+/** Called once from <Hero>'s mount effect. Returns a cleanup that undoes
+ *  every DOM listener, the ScrollTrigger pin, and the act registration —
+ *  everything that would otherwise double up under StrictMode's dev-only
+ *  double-invoke. */
+export function initHero() {
+  section = document.getElementById("brain");
+  stageEl = document.getElementById("stage");
+  titleScreenEl = document.getElementById("brainTitleScreen");
+  hintEl = document.getElementById("brainHint");
+  progressEl = document.getElementById("brainProgress");
+  exitFadeEl = document.getElementById("brainExitFade");
+  pageEls = [
+    document.getElementById("brainPage0"),
+    document.getElementById("brainPage1"),
+    document.getElementById("brainPage2"),
+  ];
+
+  act = registerAct({
+    id: "hero",
+    el: section,
+    group: brainGroup,
+    update,
+    setActive(active) {
+      // the blur belongs to the hero alone — leave the shared canvas clean
+      // for every other act
+      if (!active) stageEl.style.filter = "none";
+    },
+  });
+
+  const onPointerMove = (e) => {
+    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+  };
+  window.addEventListener("pointermove", onPointerMove);
+
+  let trigger = null;
+  if (!reduceMotion) {
+    trigger = ScrollTrigger.create({
+      trigger: "#brain",
+      start: "top top",
+      end: "+=380%",
+      scrub: 0.6,
+      pin: true,
+      onUpdate: (self) => onProgress(self.progress),
+      // the hero has its own progress rail (.brain-progress) at the exact
+      // same screen position as the page-wide reading spine — both visible
+      // at once reads as two conflicting scrollbars, so the spine steps
+      // aside while the hero owns that spot
+      onToggle: (self) =>
+        document.body.classList.toggle("is-hero", self.isActive),
+    });
+  } else {
+    onProgress(0.3);
+  }
+
+  return () => {
+    window.removeEventListener("pointermove", onPointerMove);
+    trigger?.kill();
+    document.body.classList.remove("is-hero");
+    unregisterAct(act);
+    act = null;
+  };
+}

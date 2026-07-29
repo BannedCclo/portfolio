@@ -1,0 +1,295 @@
+/* ===========================================================
+   hero — the pinned brain sequence
+   The 3D itself lives in the shared #stage canvas (js/stage.js); everything
+   here is the overlay chrome that takes turns in front of it.
+   =========================================================== */
+
+#brain {
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
+}
+
+/* vignette */
+#brain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    transparent 55%,
+    rgba(10, 10, 13, 0.4) 100%
+  );
+}
+
+/* Reaches well above where the text pages actually sit — page0's brain in
+   particular is centred and at full brightness, and the corner vignette
+   above alone doesn't darken the middle of the frame where its title lands. */
+.brain-fade-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 52vh;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(10, 10, 13, 0.55) 55%,
+    var(--bg) 100%
+  );
+}
+
+/* ---------- title card ----------
+   Lives entirely in the opening beat, while the brain is still blurred and
+   distant; it dissolves as the brain comes into focus. */
+.brain-title-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--sp-3);
+  padding: 0 var(--gutter);
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 60% 42% at 50% 50%,
+    rgba(10, 10, 13, 0.6) 0%,
+    rgba(10, 10, 13, 0.25) 55%,
+    rgba(10, 10, 13, 0) 85%
+  );
+}
+.brain-title-screen__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-shadow: 0 0 18px rgba(10, 10, 13, 0.8);
+}
+.brain-title-screen__name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: italic;
+  font-size: var(--fs-9);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-shadow:
+    0 0 46px rgba(236, 232, 223, 0.3),
+    0 0 100px rgba(201, 124, 75, 0.22);
+}
+
+/* ---------- scroll hint ---------- */
+.brain-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2.6rem;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  transition: opacity 0.5s ease;
+}
+.brain-hint__bar {
+  width: 1px;
+  height: 28px;
+  background: var(--hairline);
+  position: relative;
+  overflow: hidden;
+}
+.brain-hint__bar::after {
+  content: "";
+  position: absolute;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--copper);
+  animation: hintDrop 1.8s ease-in-out infinite;
+}
+@keyframes hintDrop {
+  0% {
+    transform: translateY(-100%);
+  }
+  60%,
+  100% {
+    transform: translateY(200%);
+  }
+}
+
+/* ---------- hero-local progress bar ---------- */
+.brain-progress {
+  position: absolute;
+  right: var(--gutter);
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 120px;
+  background: var(--hairline);
+}
+.brain-progress i {
+  display: block;
+  width: 100%;
+  height: calc(var(--p, 0) * 100%);
+  background: var(--copper);
+  transform-origin: top;
+  transition: height 0.05s linear;
+}
+@media (max-width: 980px) {
+  .brain-progress {
+    display: none;
+  }
+}
+
+/* ---------- stacked text "pages" ----------
+   Full-bleed layers that take turns while the brain stays pinned behind. */
+.brain-page {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 var(--gutter) clamp(3rem, 8vh, 5.5rem);
+  gap: var(--sp-5);
+  pointer-events: none;
+}
+.brain-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-shadow: 0 0 20px rgba(10, 10, 13, 0.9);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.8s var(--ease-out-expo),
+    transform 0.8s var(--ease-out-expo);
+}
+.brain-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-8);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  max-width: 15ch;
+  text-shadow:
+    0 0 34px rgba(10, 10, 13, 0.85),
+    0 0 70px rgba(10, 10, 13, 0.6);
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity var(--dur-slow) var(--ease-out-expo) 0.08s,
+    transform var(--dur-slow) var(--ease-out-expo) 0.08s;
+}
+.brain-title em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--copper);
+}
+.brain-page-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: var(--fs-7);
+  line-height: 1.2;
+  max-width: 18ch;
+  text-shadow:
+    0 0 34px rgba(10, 10, 13, 0.85),
+    0 0 70px rgba(10, 10, 13, 0.6);
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity var(--dur-slow) var(--ease-out-expo) 0.08s,
+    transform var(--dur-slow) var(--ease-out-expo) 0.08s;
+}
+.brain-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-6);
+  flex-wrap: wrap;
+  border-top: 1px solid var(--hairline);
+  padding-top: var(--sp-5);
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity var(--dur-slow) var(--ease-out-expo) 0.16s,
+    transform var(--dur-slow) var(--ease-out-expo) 0.16s;
+}
+.brain-page.is-visible .brain-eyebrow,
+.brain-page.is-visible .brain-title,
+.brain-page.is-visible .brain-page-title,
+.brain-page.is-visible .brain-row {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* the brain steps to the left of frame on this page, so its text moves right
+   to stay clear of it */
+.brain-page--right {
+  align-items: flex-end;
+}
+.brain-page--right .brain-eyebrow,
+.brain-page--right .brain-page-title {
+  text-align: right;
+}
+
+.brain-sub {
+  max-width: 34ch;
+  color: var(--ink-dim);
+  font-size: var(--fs-4);
+  line-height: 1.6;
+  text-shadow: 0 0 20px rgba(10, 10, 13, 0.9);
+  pointer-events: auto;
+}
+.brain-cta {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-3);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--hairline);
+  transition:
+    border-color var(--dur-fast) ease,
+    gap var(--dur-fast) ease;
+}
+.brain-cta:hover {
+  border-color: var(--copper);
+  gap: 0.9rem;
+}
+.brain-cta svg {
+  transition: transform var(--dur-fast) ease;
+}
+.brain-cta:hover svg {
+  transform: translateY(3px);
+}
+
+/* covers the scene as the camera pushes in at the end, so the brain dissolves
+   to the page background before the camera reaches it */
+.brain-exit-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: var(--bg);
+  opacity: 0;
+}

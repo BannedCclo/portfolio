@@ -1,0 +1,234 @@
+/* ===========================================================
+   trabalho — horizontal gallery
+
+   Vertical scroll drives horizontal travel while the section is pinned. This
+   is the page's signature move, so it gets the same damped treatment as the
+   brain: scroll sets the target x, js/sections/work.js chases it.
+
+   Below 820px the whole conceit is dropped for a plain vertical stack —
+   horizontal scroll on a phone or a trackpad is hostile, and a fallback that
+   merely shrinks the same layout would inherit the problem.
+   =========================================================== */
+
+.work {
+  position: relative;
+}
+
+.work__pin {
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  /* clear the fixed nav, and leave room for the rail at the bottom */
+  padding: clamp(5rem, 11vh, 7rem) 0 clamp(4rem, 9vh, 5.5rem);
+}
+
+.work__head {
+  flex: none;
+  padding: 0 var(--gutter);
+  max-width: var(--maxw);
+  margin: 0 auto var(--sp-7);
+  width: 100%;
+}
+.work__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: italic;
+  font-size: var(--fs-6);
+  line-height: 1.15;
+  margin-top: var(--sp-3);
+  max-width: 22ch;
+}
+
+/* ---------- the moving track ---------- */
+.work__track {
+  display: flex;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  padding: 0 var(--gutter);
+  will-change: transform;
+}
+
+/* ---------- a project ---------- */
+.proj {
+  position: relative;
+  flex: none;
+  width: clamp(19rem, 34vw, 30rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  overflow: hidden;
+  /* set per-card from JS: how close this card is to the centre of the
+     viewport, used for the depth falloff below */
+  --focus: 0;
+  transform: perspective(1200px) translateZ(calc(var(--focus) * 22px - 22px))
+    rotateY(calc(var(--tilt-y, 0) * 1deg))
+    rotateX(calc(var(--tilt-x, 0) * 1deg));
+  opacity: calc(0.66 + var(--focus) * 0.34);
+  transition:
+    border-color var(--dur-mid) var(--ease-out-expo),
+    box-shadow var(--dur-mid) var(--ease-out-expo);
+}
+.proj:hover {
+  border-color: var(--copper-lo);
+  box-shadow: 0 0 0 1px rgba(201, 124, 75, 0.18);
+}
+
+.proj__visual {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--bg-raise);
+  border-bottom: 1px solid var(--hairline);
+  overflow: hidden;
+}
+.proj__visual canvas,
+.proj__visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* copper wash that lifts on hover, so the card reacts without moving */
+.proj__visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(10, 10, 13, 0.55),
+    transparent 60%
+  );
+  opacity: 1;
+  transition: opacity var(--dur-mid) var(--ease-out-expo);
+}
+.proj:hover .proj__visual::after {
+  opacity: 0.5;
+}
+
+.proj__body {
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  flex: 1;
+}
+
+.proj__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
+}
+.proj__index {
+  color: var(--copper);
+}
+
+.proj__name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-5);
+  line-height: 1.2;
+}
+/* One real link per card, stretched over the whole surface. Keeps a single
+   tab stop and proper link semantics without wrapping headings and paragraphs
+   in an anchor. */
+.proj__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.proj__link:focus-visible {
+  outline: none;
+}
+.proj:has(.proj__link:focus-visible) {
+  outline: 2px solid var(--copper);
+  outline-offset: 3px;
+}
+
+.proj__outcome {
+  color: var(--ink-dim);
+  font-size: var(--fs-3);
+  line-height: 1.65;
+  flex: 1;
+}
+
+.proj__stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+.proj__stack span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  color: var(--ink-dim);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0.28em 0.6em;
+}
+
+.proj__more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--hairline);
+  transition: gap var(--dur-fast) ease;
+}
+.proj:hover .proj__more {
+  gap: var(--sp-4);
+  color: var(--copper);
+}
+
+/* ---------- horizontal progress ---------- */
+.work__rail {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: clamp(2rem, 6vh, 3.5rem);
+  height: 1px;
+  background: var(--hairline);
+}
+.work__rail i {
+  display: block;
+  height: 100%;
+  width: calc(var(--x, 0) * 100%);
+  background: var(--copper);
+}
+
+/* ===========================================================
+   vertical fallback
+   =========================================================== */
+@media (max-width: 819px) {
+  .work__pin {
+    height: auto;
+    display: block;
+    overflow: visible;
+    padding: clamp(4rem, 10vh, 6rem) 0;
+  }
+  .work__track {
+    flex-direction: column;
+    transform: none !important;
+    gap: var(--sp-6);
+  }
+  .proj {
+    width: 100%;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .work__rail {
+    display: none;
+  }
+}

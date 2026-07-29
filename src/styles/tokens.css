@@ -1,0 +1,86 @@
+/* ===========================================================
+   design tokens
+   The palette is deliberately an extension of the original one,
+   not a replacement: the copper / near-black pairing was chosen to
+   match the warm lighting of the brain render, so swapping it would
+   desync the 3D scene from the page around it. What was missing was
+   depth (mid surfaces) and a cool counterpoint — both added below.
+   =========================================================== */
+
+:root {
+  /* ---- surfaces, darkest to lightest ---- */
+  --bg: #0a0a0d;
+  --bg-raise: #0f0f14;
+  --surface: #121218;
+  --surface-2: #17171f;
+
+  /* ---- ink ---- */
+  --ink: #ece8df;
+  --ink-dim: #8b8891;
+  --ink-mute: #5d5b63;
+
+  /* ---- accents ---- */
+  --copper: #c97c4b;
+  --copper-lo: #7a4a2c;
+  /* lifted straight out of the synapse shader (uColorB = 0x8fd6e6) so the
+     page and the WebGL scene share one accent instead of two similar ones */
+  --cyan: #8fd6e6;
+  --teal: #4a6670;
+
+  /* ---- lines ---- */
+  --hairline: rgba(236, 232, 223, 0.12);
+  --hairline-strong: rgba(236, 232, 223, 0.22);
+
+  /* ---- type families ---- */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo,
+    monospace;
+
+  /* ---- type scale (~1.25 modular, fluid above --fs-5) ---- */
+  --fs-1: 0.72rem;
+  --fs-2: 0.78rem;
+  --fs-3: 0.85rem;
+  --fs-4: 1rem;
+  --fs-5: clamp(1.2rem, 2.6vw, 1.7rem);
+  --fs-6: clamp(1.8rem, 3.4vw, 2.6rem);
+  --fs-7: clamp(1.9rem, 4.4vw, 3.4rem);
+  --fs-8: clamp(2.4rem, 6.6vw, 5.6rem);
+  --fs-9: clamp(2.05rem, 7.6vw, 6rem);
+
+  /* ---- tracking ---- */
+  --track-label: 0.14em;
+  --track-wide: 0.22em;
+
+  /* ---- space scale (4px base) ---- */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 2.5rem;
+  --sp-8: 3.5rem;
+  --sp-9: 5rem;
+  --sp-10: 8rem;
+
+  /* ---- motion ----
+     --ease-out-expo was already used inline in ~8 places; naming it keeps
+     every transition on the page speaking the same language as the 3D
+     choreography in js/motion.js */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 0.3s;
+  --dur-mid: 0.6s;
+  --dur-slow: 0.9s;
+
+  /* ---- layout ---- */
+  --maxw: 1180px;
+  --gutter: clamp(1.5rem, 5vw, 3.5rem);
+
+  /* ---- z layers ---- */
+  --z-stage: 0;
+  --z-content: 1;
+  --z-chrome: 40;
+  --z-nav: 50;
+}

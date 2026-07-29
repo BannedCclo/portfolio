@@ -1,0 +1,78 @@
+/* ===========================================================
+   prefers-reduced-motion
+
+   Loaded last so it wins. The page's whole structure assumes motion, so the
+   reduced path is not "the same page, slower" — it drops the pinned
+   choreography entirely and lets everything sit in normal document flow,
+   already revealed. js/ mirrors this: pins are never created and the 3D
+   holds a single static pose.
+   =========================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  /* the hero's scroll affordances have nothing to drive */
+  .brain-hint,
+  .brain-progress,
+  .spine {
+    display: none;
+  }
+
+  /* only the intro page is meaningful without the pinned sequence */
+  #brainPage1,
+  #brainPage2 {
+    display: none;
+  }
+
+  .brain-page .brain-eyebrow,
+  .brain-page .brain-title,
+  .brain-page .brain-page-title,
+  .brain-page .brain-row,
+  .fade-in,
+  .w__in,
+  .stack__group li,
+  .tl {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* The gallery's horizontal travel is driven by a pin that never gets
+     created here, so without this the track would sit frozen at x=0 with
+     every card past the third clipped away. Same vertical stack the narrow
+     breakpoint falls back to. */
+  .work__pin {
+    height: auto;
+    display: block;
+    overflow: visible;
+    padding: clamp(4rem, 10vh, 6rem) 0;
+  }
+  /* a grid rather than the narrow breakpoint's single column: this path also
+     runs on wide desktops, where one card per row would blow the artwork up
+     to full-bleed */
+  .work__track {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    max-width: var(--maxw);
+    margin: 0 auto;
+    transform: none !important;
+    gap: var(--sp-6);
+  }
+  .proj {
+    width: auto;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .work__rail {
+    display: none;
+  }
+}

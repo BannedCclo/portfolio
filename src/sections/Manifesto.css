@@ -1,0 +1,174 @@
+/* ===========================================================
+   manifesto — three opinions, revealed line by line
+
+   Deliberately typographic and 2D. Right after the hero's heavy 3D the page
+   needs to breathe; the only motion here is text rising and a signal running
+   down the rail.
+   =========================================================== */
+
+.manifesto {
+  position: relative;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: clamp(6rem, 18vh, 12rem) var(--gutter) clamp(6rem, 16vh, 10rem);
+}
+
+/* ---------- masked word reveal ----------
+   Shared by any section that opts into splitWords(). */
+.w {
+  display: inline-block;
+  overflow: hidden;
+  /* room for descenders, taken back so line-height is unaffected */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  vertical-align: bottom;
+}
+.w__in {
+  display: inline-block;
+  transform: translateY(105%);
+  opacity: 0;
+  transition:
+    transform 1s var(--ease-out-expo),
+    opacity 0.8s var(--ease-out-expo);
+  transition-delay: calc(var(--line, 0) * 90ms);
+}
+.is-revealed .w__in {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* ---------- the synapse rail ----------
+   The page's recurring motif: a hairline carrying a signal. It fills as the
+   section scrolls and a brighter pulse rides at the head of the fill, which
+   is the same idea as the transmission flashes on the brain's surface. */
+.manifesto__rail {
+  position: absolute;
+  left: calc(var(--gutter) - 1px);
+  top: clamp(6rem, 18vh, 12rem);
+  bottom: clamp(6rem, 16vh, 10rem);
+  width: 1px;
+  background: var(--hairline);
+  pointer-events: none;
+}
+.manifesto__rail::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(var(--fill, 0) * 100%);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--copper-lo) 30%,
+    var(--copper)
+  );
+}
+.manifesto__pulse {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--fill, 0) * 100%);
+  width: 3px;
+  height: 46px;
+  transform: translate(-50%, -80%);
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, var(--cyan), transparent);
+  box-shadow:
+    0 0 12px var(--cyan),
+    0 0 30px rgba(143, 214, 230, 0.4);
+  opacity: var(--pulse-alpha, 0);
+}
+@media (max-width: 820px) {
+  .manifesto__rail {
+    display: none;
+  }
+}
+
+/* ---------- head ----------
+   Stacked and left-aligned rather than the two-column .block__head used
+   elsewhere: a manifesto reads as a statement, not as a labelled record. */
+.manifesto__head {
+  padding-left: clamp(0rem, 4vw, 3.5rem);
+}
+.manifesto__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: italic;
+  font-size: var(--fs-6);
+  line-height: 1.15;
+  margin-top: var(--sp-4);
+  /* measured in ch of its own (display) size — putting the limit on the
+     header instead resolves ch against the body font and wraps far too soon */
+  max-width: 22ch;
+}
+
+/* ---------- tenets ---------- */
+.manifesto__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4rem, 12vh, 8rem);
+  margin-top: clamp(3rem, 8vh, 5rem);
+  padding-left: clamp(0rem, 4vw, 3.5rem);
+}
+
+.tenet {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+@media (min-width: 820px) {
+  .tenet {
+    grid-template-columns: 5rem 1fr;
+    gap: var(--sp-6);
+    align-items: start;
+  }
+}
+
+.tenet__num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2);
+  color: var(--ink-mute);
+  letter-spacing: 0.08em;
+  padding-top: 0.75em;
+  position: relative;
+}
+/* small node on the rail, lighting up with its tenet.
+   The number sits one list-indent to the right of the rail, so stepping back
+   by that indent (plus half the dot) lands it centred on the line. */
+.tenet__num::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * clamp(0rem, 4vw, 3.5rem) - 4px);
+  top: 1.1em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  transition:
+    background 0.6s var(--ease-out-expo),
+    border-color 0.6s var(--ease-out-expo),
+    box-shadow 0.6s var(--ease-out-expo);
+}
+.tenet.is-revealed .tenet__num::before {
+  background: var(--copper);
+  border-color: var(--copper);
+  box-shadow: 0 0 14px rgba(201, 124, 75, 0.7);
+}
+@media (max-width: 819px) {
+  .tenet__num::before {
+    display: none;
+  }
+}
+
+.tenet__text {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 3.3vw, 2.5rem);
+  line-height: 1.32;
+  max-width: 24ch;
+  color: var(--ink);
+}
+.tenet__text em {
+  font-style: italic;
+  color: var(--copper);
+}

@@ -1,0 +1,176 @@
+/* ===========================================================
+   sobre & trajetória — bio on the left, timeline on the right
+
+   The timeline reuses the manifesto's synapse rail: a hairline carrying a
+   signal, with nodes that light as each entry arrives. Repeating the motif is
+   what makes the page feel like one system rather than a set of sections.
+   =========================================================== */
+
+.about__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(3rem, 8vh, 5rem) var(--sp-9);
+}
+@media (min-width: 900px) {
+  .about__grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+/* ---------- bio ---------- */
+.about__portrait {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  max-width: 22rem;
+  margin-bottom: var(--sp-6);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  overflow: hidden;
+}
+.about__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* duotone: strips the photo to the page's own two-colour range so a casual
+     snapshot still sits inside the identity instead of fighting it */
+  filter: grayscale(1) contrast(1.08) brightness(0.85);
+  mix-blend-mode: luminosity;
+}
+.about__portrait::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    150deg,
+    rgba(201, 124, 75, 0.32),
+    rgba(74, 102, 112, 0.28)
+  );
+  mix-blend-mode: color;
+  pointer-events: none;
+}
+/* stands in until a real photo exists */
+.about__portrait--empty {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(
+      ellipse at 40% 30%,
+      rgba(201, 124, 75, 0.22),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 70% 75%,
+      rgba(143, 214, 230, 0.14),
+      transparent 60%
+    ),
+    var(--surface);
+}
+.about__portrait--empty span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+.about__bio p {
+  color: var(--ink-dim);
+  line-height: 1.8;
+  font-size: var(--fs-4);
+  max-width: 46ch;
+}
+.about__bio p + p {
+  margin-top: var(--sp-4);
+}
+.about__bio strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* ---------- timeline ---------- */
+.timeline {
+  position: relative;
+  list-style: none;
+  padding-left: var(--sp-7);
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.6em;
+  bottom: 0.6em;
+  width: 1px;
+  background: var(--hairline);
+}
+/* the travelling fill, driven from js/sections/about.js */
+.timeline::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.6em;
+  width: 1px;
+  height: calc(var(--fill, 0) * (100% - 1.2em));
+  background: linear-gradient(to bottom, var(--copper-lo), var(--copper));
+}
+
+.tl {
+  position: relative;
+  padding-bottom: var(--sp-7);
+}
+.tl:last-child {
+  padding-bottom: 0;
+}
+.tl::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--sp-7));
+  top: 0.5em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  transition:
+    background 0.6s var(--ease-out-expo),
+    border-color 0.6s var(--ease-out-expo),
+    box-shadow 0.6s var(--ease-out-expo);
+}
+.tl.is-revealed::before {
+  background: var(--copper);
+  border-color: var(--copper);
+  box-shadow: 0 0 14px rgba(201, 124, 75, 0.7);
+}
+
+.tl__when {
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: 0.08em;
+  color: var(--ink-mute);
+  font-variant-numeric: tabular-nums;
+}
+.tl__what {
+  font-family: var(--font-display);
+  font-size: var(--fs-5);
+  font-weight: 500;
+  line-height: 1.25;
+  margin: var(--sp-2) 0 var(--sp-2);
+}
+.tl__where {
+  color: var(--ink-dim);
+  font-size: var(--fs-3);
+  line-height: 1.65;
+  max-width: 40ch;
+}
+
+.tl {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.8s var(--ease-out-expo),
+    transform 0.8s var(--ease-out-expo);
+}
+.tl.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
