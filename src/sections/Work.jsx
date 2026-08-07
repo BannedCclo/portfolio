@@ -64,11 +64,9 @@ export default function Work() {
       <div className="work__pin">
         <header className="work__head fade-in">
           <span className="block__label" data-index="02">
-            Trabalho selecionado
+            Experiência
           </span>
-          <h2 className="work__title">
-            Alguns projetos onde a forma acompanhou a função.
-          </h2>
+          <h2 className="work__title">Alguns projetos dos quais participei.</h2>
         </header>
 
         <div className="work__track">

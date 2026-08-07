@@ -29,9 +29,7 @@ export default function App() {
       },
       { threshold: 0.15 },
     );
-    document
-      .querySelectorAll(".fade-in")
-      .forEach((el) => revealer.observe(el));
+    document.querySelectorAll(".fade-in").forEach((el) => revealer.observe(el));
     return () => revealer.disconnect();
   }, []);
 
@@ -41,10 +39,10 @@ export default function App() {
       <Nav />
       <Spine />
       <Hero />
-      <Manifesto />
+      <About />
       <Work />
       <Stack />
-      <About />
+      <Manifesto />
       <Contact />
       <Footer />
     </>

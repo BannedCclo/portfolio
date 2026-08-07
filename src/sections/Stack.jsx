@@ -5,15 +5,15 @@ import "./Stack.css";
 // CONTEÚDO PLACEHOLDER — ajustar para as ferramentas que você realmente usa.
 const STACK_GROUPS = [
   {
-    title: "Interface",
-    items: ["TypeScript", "React", "Next.js", "CSS moderno", "GSAP", "Three.js"],
+    title: "Linguagens",
+    items: ["C/C++", "Java", "Python", "JavaScript", "TypeScript"],
   },
   {
-    title: "Servidor",
-    items: ["Node", "Python", "PostgreSQL", "Redis", "REST e GraphQL"],
+    title: "Frameworks",
+    items: ["React", "Express", "Django", "Spring"],
   },
-  { title: "Dados", items: ["dbt", "Airflow", "BigQuery", "PyTorch"] },
-  { title: "Infra", items: ["Docker", "Terraform", "GitHub Actions", "AWS"] },
+  { title: "Bancos de Dados", items: ["PostgreSQL", "MySQL", "SQLite"] },
+  { title: "Outros", items: ["GitHub", "Figma", "Claude Code", "Vercel"] },
 ];
 
 // continuous index across all columns, computed once at module load, so the
@@ -34,7 +34,7 @@ export default function Stack() {
           Ferramentas
         </span>
         <div>
-          <h2 className="block__title">O que eu costumo ter em mãos.</h2>
+          <h2 className="block__title">Tecnologias que eu já utilizei.</h2>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export default function Stack() {
             <h3>{g.title}</h3>
             <ul>
               {g.items.map(({ item, i }) => (
-                <li key={item} style={{ "--i": i }}>
+                <li key={item} style={{ "--i": i, cursor: "default" }}>
                   {item}
                 </li>
               ))}

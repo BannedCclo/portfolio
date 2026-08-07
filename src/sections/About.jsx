@@ -5,24 +5,34 @@ import "./About.css";
 // CONTEÚDO PLACEHOLDER — substituir a trajetória por dados reais.
 const TIMELINE = [
   {
-    when: "2024 — hoje",
-    what: "Desenvolvedor full-stack",
+    when: "2015",
+    what: "Introdução",
     where:
-      "Produto próprio, do banco de dados à interface. Responsável pela arquitetura e pelo design system.",
+      "Aos 8 anos, desenvolvi meu primeiro interesse pela área e comecei a aprender na escola Buddys.",
   },
   {
-    when: "2022 — 2024",
-    what: "Engenheiro de software",
+    when: "2021",
+    what: "Estudos autônomos",
     where:
-      "Plataforma de dados e integrações. Pipelines de faturamento e ferramentas internas.",
+      "Na quarentena, retomei meus estudos na área com um curso online da USP, de Python.",
   },
   {
-    when: "2020 — 2022",
-    what: "Desenvolvedor frontend",
+    when: "2023",
+    what: "Curso técnico",
     where:
-      "Interfaces para clientes de varejo, com foco em performance e acessibilidade.",
+      "Tomei um passo maior e concluí meu ensino médio no curso técnico em informática COTEMIG.",
   },
-  { when: "2019", what: "Formação", where: "Ciência da Computação." },
+  {
+    when: "2023",
+    what: "Estágio",
+    where: "Na NoHarm, estagiei como desenvolvedor de testes unitários Python.",
+  },
+  {
+    when: "2025 - hoje",
+    what: "Faculdade",
+    where:
+      "Buscando ampliar minhas capacidades, ingressei na PUC-MG, para Engenharia de Software.",
+  },
 ];
 
 export default function About() {
@@ -35,9 +45,7 @@ export default function About() {
           Sobre
         </span>
         <div>
-          <h2 className="block__title">
-            Gosto de sistemas que funcionam bem e parecem intencionais.
-          </h2>
+          <h2 className="block__title">Conheça a minha trajetória.</h2>
         </div>
       </div>
 
@@ -50,21 +58,15 @@ export default function About() {
             <span>retrato</span>
           </div>
           <p>
-            Trabalho na fronteira entre engenharia e design de interface —
-            cuidando tanto da arquitetura que sustenta um produto quanto do
-            detalhe que o torna agradável de usar.
+            Desde criança, sempre gostei de entender como as coisas funcionam.
+            Por isso, acabei me interessando por programação, também incentivado
+            por grandes referências da área que tenho na família.
           </p>
           <p>
-            Comecei pelo backend, onde aprendi a gostar de sistemas que se
-            explicam sozinhos, e fui parar no frontend porque é ali que a
-            decisão técnica encontra a pessoa que vai conviver com ela. Hoje
-            faço os dois, e acho que o trabalho fica melhor quando não são
-            duas pessoas diferentes fazendo cada metade.
-          </p>
-          <p>
-            Fora do editor, geralmente estou{" "}
-            <strong>desmontando alguma coisa</strong> para entender como foi
-            feita.
+            Hoje em dia, quanto mais eu aprendo, mais eu percebo que estou na
+            área certa para mim, e que ainda tenho muito a aprender. Por isso,
+            busco sempre me aprimorar, estudando, praticando e me inspirando em
+            pessoas que admiro.
           </p>
         </div>
 
