@@ -233,15 +233,6 @@ section.block {
    module (tokens with the module's original values as fallbacks). What this
    file owns is only what the site hands the module: the left half's content,
    plus the attribution note that sits below the whole thing. */
-.footer-note {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: var(--fs-5);
-  line-height: 1.35;
-  text-align: center;
-  max-width: 24ch;
-  color: var(--ink);
-}
 .footer-copy {
   font-family: var(--font-mono);
   font-size: var(--fs-2);

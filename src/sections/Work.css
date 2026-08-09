@@ -5,9 +5,11 @@
    is the page's signature move, so it gets the same damped treatment as the
    brain: scroll sets the target x, js/sections/work.js chases it.
 
-   Below 820px the whole conceit is dropped for a plain vertical stack —
-   horizontal scroll on a phone or a trackpad is hostile, and a fallback that
-   merely shrinks the same layout would inherit the problem.
+   Below 820px the scroll-jacked pin is dropped — trapping a phone's vertical
+   scroll to drive horizontal travel is hostile — but the row itself stays
+   horizontal as a native, swipeable strip with scroll-snap. That keeps the
+   section's height constant no matter how many projects get added; a plain
+   vertical stack would instead make the page grow forever.
    =========================================================== */
 
 .work {
@@ -250,12 +252,26 @@
     padding: clamp(4rem, 10vh, 6rem) 0;
   }
   .work__track {
-    flex-direction: column;
     transform: none !important;
-    gap: var(--sp-6);
+    gap: var(--sp-4);
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x proximity;
+    scroll-padding-left: var(--gutter);
+    -webkit-overflow-scrolling: touch;
+    /* room so the snapped card's shadow/outline isn't clipped by the
+       scroll container, and so the strip doesn't sit flush on the edge */
+    padding-bottom: var(--sp-2);
+    scrollbar-width: none;
+  }
+  .work__track::-webkit-scrollbar {
+    display: none;
   }
   .proj {
-    width: 100%;
+    /* narrower than the viewport so the next card peeks in, signalling that
+       the strip is swipeable */
+    width: min(80vw, 22rem);
+    scroll-snap-align: start;
     transform: none !important;
     opacity: 1 !important;
   }

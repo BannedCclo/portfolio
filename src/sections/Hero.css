@@ -304,3 +304,57 @@
   background: var(--bg);
   opacity: 0;
 }
+
+/* ===========================================================
+   mobile legibility
+
+   At phone widths the brain swings close enough behind the text that its
+   pale tissue tone sits right under the ink-coloured copy, and the vignette
+   tuned for desktop framing isn't strong enough there. Rather than dial up
+   the shared vignette (which would also darken the desktop's more distant
+   brain), each text layer gets its own stronger scrim/shadow here, scoped to
+   mobile only.
+   =========================================================== */
+@media (max-width: 819px) {
+  .brain-title-screen {
+    background: radial-gradient(
+      ellipse 78% 60% at 50% 50%,
+      rgba(10, 10, 13, 0.8) 0%,
+      rgba(10, 10, 13, 0.45) 55%,
+      rgba(10, 10, 13, 0) 85%
+    );
+  }
+  .brain-title-screen__name {
+    text-shadow:
+      0 0 30px rgba(10, 10, 13, 0.9),
+      0 0 60px rgba(10, 10, 13, 0.7);
+  }
+  .brain-fade-bottom {
+    height: 72vh;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(10, 10, 13, 0.8) 45%,
+      var(--bg) 100%
+    );
+  }
+  /* a permanent scrim behind the text block itself, so legibility holds
+     regardless of exactly where the brain happens to be underneath */
+  .brain-page {
+    background: linear-gradient(
+      to top,
+      rgba(10, 10, 13, 0.82) 0%,
+      rgba(10, 10, 13, 0.45) 45%,
+      rgba(10, 10, 13, 0) 78%
+    );
+  }
+  .brain-eyebrow,
+  .brain-title,
+  .brain-page-title,
+  .brain-sub {
+    text-shadow:
+      0 0 4px rgba(10, 10, 13, 1),
+      0 0 24px rgba(10, 10, 13, 0.9),
+      0 0 48px rgba(10, 10, 13, 0.7);
+  }
+}

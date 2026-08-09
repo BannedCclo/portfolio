@@ -39,6 +39,18 @@ const reduceMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
 
+// The brain is modelled at a size tuned for desktop framing; at phone widths
+// it reads as oversized and crowds the text pages as it swings side to side.
+// Shrunk uniformly via brainGroup.scale rather than touching the desktop
+// keyframes above. Same 819/820 breakpoint as the rest of the page (see
+// sections/work.js).
+const mobileQuery = window.matchMedia("(max-width: 819px)");
+let isMobile = mobileQuery.matches;
+mobileQuery.addEventListener("change", (e) => {
+  isMobile = e.matches;
+});
+const MOBILE_BRAIN_SCALE = 0.74;
+
 // The scene's warm resting tone while the hero owns the canvas — exported so
 // the finale (acts/finale.js) can restore it if the user scrolls back up past
 // Contact into the hero, since finale is the only other act that ever tints
@@ -494,7 +506,11 @@ function update(t, dt) {
   brainGroup.rotation.z = ease * deg(pose.roll);
   brainGroup.position.x = pose.offsetX * aspectFactor;
   brainGroup.position.z = lerp(-0.35, 0.4, ease);
-  brainGroup.scale.setScalar(lerp(0.86, 1.0, ease) * lerp(1, pose.scale, ease));
+  brainGroup.scale.setScalar(
+    lerp(0.86, 1.0, ease) *
+      lerp(1, pose.scale, ease) *
+      (isMobile ? MOBILE_BRAIN_SCALE : 1),
+  );
 
   camPos.lerpVectors(camStart, camEnd, ease);
   camPos.lerp(camDeep, pose.exit);

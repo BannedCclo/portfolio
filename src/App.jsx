@@ -4,6 +4,7 @@ import Nav from "./components/Nav.jsx";
 import Spine from "./components/Spine.jsx";
 import Footer from "./components/footer/footer";
 import AnimatedLogo from "./components/animatedLogo/animatedLogo";
+import RandomProjectButton from "./components/RandomProjectButton.jsx";
 import Hero from "./sections/Hero.jsx";
 import Manifesto from "./sections/Manifesto.jsx";
 import Work from "./sections/Work.jsx";
@@ -50,7 +51,7 @@ export default function App() {
           a do topo do footer, e o traço #ECE8DF é o próprio --ink do site. Ela
           se desenha ao entrar na viewport — ver components/animatedLogo. */}
       <Footer logo={<AnimatedLogo />} backgroundColor="var(--bg)">
-        <p className="footer-note">Feito com React, Three.js e GSAP.</p>
+        <RandomProjectButton />
         <p className="footer-copy">© 2026 Marcelo Guimarães</p>
       </Footer>
       {/* Attribution required by the brain model's licence — do not remove */}
