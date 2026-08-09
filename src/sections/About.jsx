@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { initAbout } from "../lib/sections/about.js";
+import retrato from "../assets/eu/retrato.jpg";
 import "./About.css";
 
 // Link institucional de cada marco — usado por tl__where para destacar o nome
@@ -95,12 +96,10 @@ export default function About() {
       </div>
 
       <div className="about__grid">
-        {/* CONTEÚDO PLACEHOLDER — bio em primeira pessoa.
-            Para usar uma foto, troque about__portrait--empty por
-            <div className="about__portrait"><img src="..." alt="..." /></div> */}
+        {/* CONTEÚDO PLACEHOLDER — bio em primeira pessoa. */}
         <div className="about__bio fade-in">
-          <div className="about__portrait about__portrait--empty">
-            <span>retrato</span>
+          <div className="about__portrait">
+            <img src={retrato} alt="Retrato de Marcelo Guimarães" />
           </div>
           <p>
             Desde criança, sempre gostei de entender como as coisas funcionam.

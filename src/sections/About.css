@@ -32,22 +32,6 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* duotone: strips the photo to the page's own two-colour range so a casual
-     snapshot still sits inside the identity instead of fighting it */
-  filter: grayscale(1) contrast(1.08) brightness(0.85);
-  mix-blend-mode: luminosity;
-}
-.about__portrait::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    150deg,
-    rgba(201, 124, 75, 0.32),
-    rgba(74, 102, 112, 0.28)
-  );
-  mix-blend-mode: color;
-  pointer-events: none;
 }
 /* stands in until a real photo exists */
 .about__portrait--empty {

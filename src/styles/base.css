@@ -197,12 +197,6 @@ section.block {
   gap: var(--sp-7) var(--sp-8);
   margin-bottom: var(--sp-8);
 }
-@media (min-width: 820px) {
-  .block__head {
-    grid-template-columns: 0.9fr 1.4fr;
-    align-items: end;
-  }
-}
 .block__label {
   font-family: var(--font-mono);
   font-size: var(--fs-2);

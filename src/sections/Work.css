@@ -66,7 +66,10 @@
   transform: perspective(1200px) translateZ(calc(var(--focus) * 22px - 22px))
     rotateY(calc(var(--tilt-y, 0) * 1deg))
     rotateX(calc(var(--tilt-x, 0) * 1deg));
-  opacity: calc(0.66 + var(--focus) * 0.34);
+  /* floor kept high so every card reads clearly even off-centre — the last
+     card in particular never reaches full focus, since the track runs out
+     of room to travel before it can be centred */
+  opacity: calc(0.92 + var(--focus) * 0.08);
   transition:
     border-color var(--dur-mid) var(--ease-out-expo),
     box-shadow var(--dur-mid) var(--ease-out-expo);
@@ -105,6 +108,34 @@
 }
 .proj:hover .proj__visual::after {
   opacity: 0.5;
+}
+
+/* link ao repositório, flutuando sobre a captura de tela — precisa de
+   z-index acima do link esticado do card (.proj__link::after, z-index 1) */
+.proj__github {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(10, 10, 13, 0.6);
+  border: 1px solid rgba(236, 232, 223, 0.18);
+  color: var(--ink);
+  backdrop-filter: blur(4px);
+  transition:
+    background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+.proj__github:hover {
+  background: var(--copper);
+  border-color: var(--copper);
+  color: var(--bg);
 }
 
 .proj__body {
