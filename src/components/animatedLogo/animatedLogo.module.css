@@ -1,0 +1,181 @@
+.wrapper {
+  display: block;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+ * Cada peça tem um estado base (escondida) e só ganha a animação quando o
+ * wrapper recebe `.play` — a classe que animatedLogo.tsx liga e desliga
+ * conforme o SVG entra e sai da viewport (IntersectionObserver). Sem `.play`
+ * a peça volta ao estado base, pronta para animar de novo na próxima entrada.
+ */
+
+/*
+ * Contorno do ícone. Cada traço entra escondido (o gap do tracejado cobre o
+ * path inteiro) e vai sendo revelado conforme `--offset` cai até zero.
+ * `--length`, `--offset`, `--duration` e `--delay` saem da medição do path em
+ * JS; `--ease` é fixo por traço — ver animatedLogo.tsx.
+ */
+.stroke {
+  stroke-dasharray: var(--length);
+  stroke-dashoffset: var(--offset);
+}
+
+.wrapper.play .stroke {
+  animation: draw var(--duration) var(--ease) var(--delay) both;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * O cursor não é desenhado: surge de uma vez, num zoom in curto e com um leve
+ * overshoot, e daí em diante pisca em `step-end` — sem fade, igual a um cursor
+ * de terminal. Os três traços dele escalam em torno do centro do conjunto, não
+ * cada um no seu, senão se separariam durante o zoom.
+ */
+.cursor {
+  opacity: 0;
+  transform: scale(2.6);
+  transform-origin: var(--cursor-origin);
+}
+
+.wrapper.play .cursor {
+  animation:
+    cursorIn var(--cursor-in-duration) cubic-bezier(0.2, 1.5, 0.4, 1)
+      var(--cursor-delay) both,
+    cursorBlink var(--cursor-blink-period) step-end
+      calc(var(--cursor-delay) + var(--cursor-in-duration)) infinite;
+}
+
+@keyframes cursorIn {
+  from {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes cursorBlink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* A linha do texto nasce no meio e cresce para as duas pontas ao mesmo tempo. */
+.line {
+  transform: scaleX(0);
+  transform-origin: var(--line-origin);
+}
+
+.wrapper.play .line {
+  animation: lineOut var(--line-duration) cubic-bezier(0.22, 0.8, 0.3, 1)
+    var(--line-delay) both;
+}
+
+@keyframes lineOut {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/*
+ * Nome e cargo são revelados por uma janela que se abre a partir da linha: o de
+ * cima descobre de baixo para cima, o de baixo de cima para baixo. O pequeno
+ * deslocamento vertical junto é o que faz parecer que eles emergem da linha, em
+ * vez de só aparecerem no lugar.
+ */
+.name {
+  clip-path: inset(100% 0 0 0) fill-box;
+  transform: translateY(7px);
+}
+
+.role {
+  clip-path: inset(0 0 100% 0) fill-box;
+  transform: translateY(-7px);
+}
+
+.wrapper.play .name,
+.wrapper.play .role {
+  animation-duration: var(--text-duration);
+  animation-timing-function: cubic-bezier(0.25, 0.7, 0.3, 1);
+  animation-delay: var(--text-delay);
+  animation-fill-mode: both;
+}
+
+.wrapper.play .name {
+  animation-name: revealUp;
+}
+
+.wrapper.play .role {
+  animation-name: revealDown;
+}
+
+@keyframes revealUp {
+  from {
+    clip-path: inset(100% 0 0 0) fill-box;
+    transform: translateY(7px);
+  }
+  to {
+    clip-path: inset(0 0 0 0) fill-box;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealDown {
+  from {
+    clip-path: inset(0 0 100% 0) fill-box;
+    transform: translateY(-7px);
+  }
+  to {
+    clip-path: inset(0 0 0 0) fill-box;
+    transform: translateY(0);
+  }
+}
+
+/* Sem animação: o logo aparece pronto, com o cursor aceso, direto — sem
+   esperar a viewport. */
+@media (prefers-reduced-motion: reduce) {
+  .wrapper.play .stroke,
+  .wrapper.play .cursor,
+  .wrapper.play .line,
+  .wrapper.play .name,
+  .wrapper.play .role {
+    animation: none;
+  }
+
+  .stroke {
+    stroke-dashoffset: 0;
+  }
+
+  .cursor {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .line {
+    transform: scaleX(1);
+  }
+
+  .name,
+  .role {
+    clip-path: inset(0 0 0 0) fill-box;
+    transform: translateY(0);
+  }
+}

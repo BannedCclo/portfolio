@@ -24,10 +24,40 @@ espaço reservado. O que bloqueia o site ficar real:
 | Sobre | bio em primeira pessoa | `src/sections/About.jsx` |
 | Trajetória | empregos e formação com datas | `src/sections/About.jsx` (array `TIMELINE`) |
 | Retrato | trocar `.about__portrait--empty` por `<div className="about__portrait"><img … /></div>` | `src/sections/About.jsx` |
-| Contato | links reais do GitHub e do LinkedIn (hoje `href="#"`) | `src/sections/Contact.jsx` |
+| Contato | configurar o Resend pro formulário funcionar de verdade — ver [Formulário de contato](#formulário-de-contato) abaixo | `api/contact.js` |
 
 O manifesto (as três opiniões) também é meu chute a partir do que você já tinha
 escrito — vale reescrever com as suas, em `src/sections/Manifesto.jsx`.
+
+---
+
+## Formulário de contato
+
+O site é estático — não tem autorização pra mandar email em nome de quem
+preenche o formulário (isso exigiria ser dono do domínio de origem do
+remetente, nunca o caso pro email de um visitante qualquer). Por isso
+`api/contact.js` (uma Vercel Function, não faz parte do bundle do Vite) manda
+o email sempre de uma conta sua para você mesmo — o remetente do formulário só
+aparece no corpo da mensagem e no `Reply-To`, então responder o email já vai
+direto pra ele.
+
+Configuração necessária (uma vez):
+
+1. Crie uma conta em [resend.com](https://resend.com) e gere uma API key.
+2. No painel da Vercel do projeto: **Settings → Environment Variables**, crie
+   `RESEND_API_KEY` com essa chave (Production e Preview).
+3. Sem domínio próprio verificado no Resend, o remetente cai no sandbox deles
+   (`onboarding@resend.dev`) — funciona, mas normalmente só entrega pro email
+   dono da conta Resend (que é o seu caso aqui, já que o destino é você
+   mesmo). Se depois verificar um domínio no Resend, aponte `CONTACT_FROM_EMAIL`
+   (mesma tela de env vars) pra um endereço desse domínio.
+
+Ver `.env.example` para o formato exato das variáveis.
+
+**Dev local:** `npm run dev` (Vite puro) não serve `api/`, então o formulário
+vai dar erro de rede ao tentar enviar. Pra testar de verdade localmente, use a
+Vercel CLI: `npx vercel link` (uma vez) e depois `npx vercel dev` — isso serve
+o site *e* a function juntos, lendo as env vars do projeto vinculado.
 
 ---
 
@@ -35,6 +65,8 @@ escrito — vale reescrever com as suas, em `src/sections/Manifesto.jsx`.
 
 ```
 index.html                    entrada do Vite — só <div id="root"> e o script
+api/
+  contact.js                   Vercel Function — envia o email do formulário de contato (Resend)
 src/
   main.jsx                    bootstrap (StrictMode, scrollRestoration)
   App.jsx                     compõe a página inteira
@@ -53,7 +85,10 @@ src/
     stage.js                  um canvas WebGL para a página inteira + diretor de atos
     acts/hero.js               o cérebro
     acts/finale.js             o cérebro de volta, no contato
-  components/                 Stage, Nav, Spine, Footer, ProjectArt
+  components/                 Stage, Nav, Spine, ProjectArt
+    footer/, signature/       módulo compartilhado Assets/Footer, com a paleta daqui
+    animatedLogo/             o logo da marca desenhando-se (Assets/Logo)
+  assets/logo/dark/           SVG do logo lido pelo animatedLogo (?raw)
   sections/                   um componente + um .css por seção
 tools/
   bake-brain.mjs               brain.stl → public/assets/brain.glb (rodar só se a malha mudar)
@@ -127,8 +162,16 @@ elementos direto do JS — nem via `style.setProperty`, nem via `setState`.
   (`npm run bake-brain`). Isso tudo rodava no navegador, na main thread, a
   cada carregamento, antes de virar um passo offline.
 - **Atribuição obrigatória.** O modelo do cérebro é de Nevit Dilmen (Wikimedia
-  Commons, CC BY-SA 3.0 / GFDL). O crédito no rodapé (`src/components/Footer.jsx`)
+  Commons, CC BY-SA 3.0 / GFDL). O crédito abaixo do rodapé (`src/App.jsx`)
   é condição da licença — não remova.
+- **O rodapé é um módulo de fora.** Ele vem de `Assets/Footer` (estrutura e
+  classes intactas); esta cópia só troca cor por token de `styles/tokens.css`,
+  com o valor original como fallback. Ao ressincronizar com o asset, reaplique
+  essa camada em vez de sobrescrever o arquivo direto.
+- **O logo do rodapé se desenha.** `components/animatedLogo` mede cada traço do
+  SVG em runtime (`getTotalLength()`) e reparte a duração entre eles, então o
+  ritmo do desenho não muda com o tamanho na tela. A coreografia é a mesma que
+  vive em `Assets/Logo/preview/` — o que muda aqui é só de onde vem o markup.
 
 ---
 

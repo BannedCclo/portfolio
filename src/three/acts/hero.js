@@ -24,7 +24,7 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { camera, registerAct, unregisterAct, quality } from "../stage.js";
+import { camera, scene, registerAct, unregisterAct, quality, PAGE_BG } from "../stage.js";
 import { ScrollTrigger } from "../../lib/gsap.js";
 import {
   clamp01,
@@ -38,6 +38,12 @@ import {
 const reduceMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
+
+// The scene's warm resting tone while the hero owns the canvas — exported so
+// the finale (acts/finale.js) can restore it if the user scrolls back up past
+// Contact into the hero, since finale is the only other act that ever tints
+// scene.background/fog.
+export const HERO_BG = 0x1e1a1c;
 
 export const brainGroup = new THREE.Group();
 
@@ -291,7 +297,15 @@ let progress = reduceMotion ? 0.3 : 0;
 const BRAIN_BLUR_MAX = 3; // px
 
 // populated by initHero() once #brain and friends exist in the DOM
-let section, stageEl, titleScreenEl, hintEl, progressEl, exitFadeEl, pageEls;
+let section,
+  stageEl,
+  titleScreenEl,
+  hintEl,
+  progressEl,
+  exitFadeEl,
+  vignetteEl,
+  fadeBottomEl,
+  pageEls;
 
 function onProgress(p) {
   progress = p;
@@ -414,24 +428,52 @@ const camPos = new THREE.Vector3();
 let act = null;
 
 function update(t, dt) {
+  // pose.exit chases exitEase over wall-clock time (damp(), not scroll
+  // distance) — computed unconditionally, first thing, so it keeps
+  // converging every frame this runs regardless of what wantsRender was on
+  // the previous frame or how fast progress itself is moving.
+  const exitEase = smoothstep(
+    clamp01((progress - PHASE.exitStart) / (1 - PHASE.exitStart)),
+  );
+  pose.exit = damp(pose.exit, exitEase, dt);
+
   // Release the canvas once there is nothing left to show. Two conditions,
-  // because each covers a case the other misses: the sequence having run out
-  // (the exit overlay is opaque by then, so the brain is already invisible),
-  // and the section simply not being on screen — which is the only signal
-  // available under reduced motion, where no pin exists and progress is
-  // frozen at a static pose forever.
+  // because each covers a case the other misses: the exit fade having
+  // actually finished — gated on the overlay's own opacity, not raw
+  // progress. Progress can reach 1 almost instantly on a fast scroll while
+  // pose.exit (which the opacity below is drawn from) is still catching up;
+  // gating on progress used to hide the canvas mid-fade, with the brain only
+  // partially covered by .brain-exit-fade's flat overlay — a visibly uneven
+  // cut, worse the faster the scroll. Gating on the overlay's own opacity
+  // instead means the canvas only ever disappears once it has already gone
+  // fully opaque and uniform, however long that takes in real time — the
+  // same fixed duration regardless of scroll speed. The second condition,
+  // the section simply not being on screen, is the only signal available
+  // under reduced motion, where no pin exists, progress is frozen at a
+  // static pose forever, and pose.exit (tied to PHASE.exitStart, which that
+  // frozen progress never reaches) would otherwise never trigger it.
+  const exitOpacity = smoothstep(clamp01(pose.exit / 0.7));
+  exitFadeEl.style.opacity = exitOpacity;
   if (act) {
     const rect = section.getBoundingClientRect();
     const onScreen = rect.bottom > 0 && rect.top < window.innerHeight;
-    act.wantsRender = progress < 0.995 && onScreen;
+    act.wantsRender = exitOpacity < 1 && onScreen;
+
+    // The vignette and bottom fade are flat, always-on darkening while the
+    // hero owns the canvas — no fade curve of their own to chase, so they
+    // just mirror wantsRender directly. A binary snap here is safe (unlike
+    // it would be for the canvas itself): it only ever lands exactly when
+    // wantsRender also flips, i.e. while the canvas is already hidden on one
+    // side of that instant or the exit-fade is already opaque on the other.
+    const vignetteOpacity = act.wantsRender ? 1 : 0;
+    vignetteEl.style.opacity = vignetteOpacity;
+    fadeBottomEl.style.opacity = vignetteOpacity;
+
     if (!act.wantsRender) return;
   }
 
   const approachRaw = clamp01(progress / PHASE.approachEnd);
   const ease = smoothstep(approachRaw);
-  const exitEase = smoothstep(
-    clamp01((progress - PHASE.exitStart) / (1 - PHASE.exitStart)),
-  );
 
   if (!reduceMotion) {
     idleYaw = Math.min(
@@ -443,7 +485,6 @@ function update(t, dt) {
   for (const key in KF) {
     pose[key] = damp(pose[key], sampleCurve(progress, KF[key]), dt);
   }
-  pose.exit = damp(pose.exit, exitEase, dt);
 
   // narrower frames get a smaller lateral step so the brain stays on screen
   const aspectFactor = clamp01(camera.aspect / 1.4);
@@ -465,10 +506,6 @@ function update(t, dt) {
   camera.position.copy(camPos);
   camera.lookAt(0, -0.18, 0);
 
-  // dissolve to the page background slightly ahead of the camera's own damped
-  // push-in, so the brain is gone before the camera would arrive
-  exitFadeEl.style.opacity = smoothstep(clamp01(pose.exit / 0.7));
-
   const activation = smoothstep((approachRaw - 0.55) / (0.94 - 0.55));
   synapseMat.uniforms.uTime.value = t;
   synapseMat.uniforms.uActivation.value = activation;
@@ -486,6 +523,8 @@ export function initHero() {
   hintEl = document.getElementById("brainHint");
   progressEl = document.getElementById("brainProgress");
   exitFadeEl = document.getElementById("brainExitFade");
+  vignetteEl = document.getElementById("brainVignette");
+  fadeBottomEl = document.getElementById("brainFadeBottom");
   pageEls = [
     document.getElementById("brainPage0"),
     document.getElementById("brainPage1"),
@@ -501,6 +540,35 @@ export function initHero() {
       // the blur belongs to the hero alone — leave the shared canvas clean
       // for every other act
       if (!active) stageEl.style.filter = "none";
+
+      // Vignette/fade-bottom/exit-fade are only ever turned OFF from inside
+      // update() (mirroring wantsRender), and update() only runs while
+      // `near`. A big enough jump — a user flinging the scrollbar itself, or
+      // any instant scrollTo — can cross the entire near-margin buffer in
+      // one step, going near:true straight to near:false with no frame in
+      // between to catch wantsRender turning false and zero them out. Left
+      // at whatever opacity they last had (1, their normal state any time
+      // the hero is actually on screen), they'd sit there forever, dimming
+      // every section for the rest of the page. This is the one place a
+      // near→false transition is guaranteed to run regardless of how it
+      // happened, so it's the reset of last resort.
+      if (!active) {
+        vignetteEl.style.opacity = 0;
+        fadeBottomEl.style.opacity = 0;
+        exitFadeEl.style.opacity = 0;
+      }
+
+      // scene.background/fog is shared state, not owned by any one act. Set
+      // it back to the warm hero tone on the way in (in case the user
+      // scrolled back up from the finale, which leaves it at PAGE_BG) and
+      // release it to the neutral page tone on the way out — otherwise it
+      // would sit at HERO_BG, invisible while nothing wants the canvas, for
+      // the entire stretch between the hero and the finale, and the finale
+      // would then reveal that stale warm tone as a sudden jump the instant
+      // its own canvas content appears.
+      const hex = active ? HERO_BG : PAGE_BG;
+      scene.background.setHex(hex);
+      scene.fog.color.setHex(hex);
     },
   });
 

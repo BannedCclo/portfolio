@@ -2,13 +2,25 @@ import { useEffect } from "react";
 import { initAbout } from "../lib/sections/about.js";
 import "./About.css";
 
+// Link institucional de cada marco — usado por tl__where para destacar o nome
+// da instituição em laranja (--copper) e linkar para o site oficial.
+const INSTITUTIONS = {
+  Buddys: "https://buddys-programadores-do-futuro.webflow.io/",
+  COTEMIG: "https://www.cotemig.com.br/",
+  NoHarm: "https://noharm.ai/",
+  "PUC-MG": "https://www.pucminas.br/",
+};
+
 // CONTEÚDO PLACEHOLDER — substituir a trajetória por dados reais.
 const TIMELINE = [
   {
     when: "2015",
     what: "Introdução",
-    where:
-      "Aos 8 anos, desenvolvi meu primeiro interesse pela área e comecei a aprender na escola Buddys.",
+    where: [
+      "Aos 8 anos, desenvolvi meu primeiro interesse pela área e comecei a aprender na escola ",
+      "Buddys",
+      ".",
+    ],
   },
   {
     when: "2021",
@@ -19,21 +31,54 @@ const TIMELINE = [
   {
     when: "2023",
     what: "Curso técnico",
-    where:
-      "Tomei um passo maior e concluí meu ensino médio no curso técnico em informática COTEMIG.",
+    where: [
+      "Tomei um passo maior e concluí meu ensino médio no curso técnico em informática ",
+      "COTEMIG",
+      ".",
+    ],
   },
   {
     when: "2023",
     what: "Estágio",
-    where: "Na NoHarm, estagiei como desenvolvedor de testes unitários Python.",
+    where: ["Na ", "NoHarm", ", estagiei como desenvolvedor de testes unitários Python."],
   },
   {
-    when: "2025 - hoje",
-    what: "Faculdade",
-    where:
-      "Buscando ampliar minhas capacidades, ingressei na PUC-MG, para Engenharia de Software.",
+    when: "2025",
+    what: "Universidade",
+    where: [
+      "Buscando ampliar minhas capacidades, ingressei na ",
+      "PUC-MG",
+      ", para Engenharia de Software.",
+    ],
   },
 ];
+
+// Marcos com trecho institucional destacam a instituição em `<mark>` — link
+// quando há URL confirmada, span quando ainda não há (Buddys). Marcos sem
+// instituição continuam string simples, sem passar por isto.
+function renderWhere(where) {
+  if (typeof where === "string") return where;
+  const [before, institution, after] = where;
+  const href = INSTITUTIONS[institution];
+  return (
+    <>
+      {before}
+      {href ? (
+        <a
+          className="tl__institution"
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {institution}
+        </a>
+      ) : (
+        <span className="tl__institution">{institution}</span>
+      )}
+      {after}
+    </>
+  );
+}
 
 export default function About() {
   useEffect(() => initAbout(), []);
@@ -41,7 +86,7 @@ export default function About() {
   return (
     <section id="sobre" className="block layer">
       <div className="block__head fade-in">
-        <span className="block__label" data-index="04">
+        <span className="block__label" data-index="01">
           Sobre
         </span>
         <div>
@@ -75,7 +120,7 @@ export default function About() {
             <li className="tl" key={t.when}>
               <p className="tl__when">{t.when}</p>
               <h3 className="tl__what">{t.what}</h3>
-              <p className="tl__where">{t.where}</p>
+              <p className="tl__where">{renderWhere(t.where)}</p>
             </li>
           ))}
         </ol>

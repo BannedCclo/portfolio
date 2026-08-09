@@ -10,13 +10,17 @@
   overflow: hidden;
 }
 
-/* vignette */
-#brain::after {
-  content: "";
-  position: absolute;
+/* Vignette + bottom fade, darkening the brain behind the hero's own text for
+   legibility. Both live in <Stage> now, not inside #brain (see the comment
+   there) — position: fixed, toggled by acts/hero.js in lockstep with
+   whether the hero currently owns the canvas at all, rather than confined to
+   (and clipped by) #brain's own scrollable box. */
+.brain-vignette {
+  position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  opacity: 0;
   background: radial-gradient(
     ellipse at 50% 45%,
     transparent 55%,
@@ -28,13 +32,14 @@
    particular is centred and at full brightness, and the corner vignette
    above alone doesn't darken the middle of the frame where its title lands. */
 .brain-fade-bottom {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   height: 52vh;
   z-index: 1;
   pointer-events: none;
+  opacity: 0;
   background: linear-gradient(
     to bottom,
     transparent,
@@ -283,12 +288,18 @@
   transform: translateY(3px);
 }
 
-/* covers the scene as the camera pushes in at the end, so the brain dissolves
-   to the page background before the camera reaches it */
+/* Covers the scene as the camera pushes in at the end, so the brain dissolves
+   to the page background before the camera reaches it. Lives in <Stage> now,
+   not inside #brain (see the comment there) — position: fixed so it keeps
+   covering the canvas at the same coordinates regardless of where #brain
+   itself has scrolled to, the same way #stage does. Between the canvas
+   (--z-stage) and page content: it needs to sit above the brain it's
+   masking, but content sections — rendered later in the DOM at this same
+   z-index — still paint over it wherever the two overlap. */
 .brain-exit-fade {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 3;
+  z-index: var(--z-content);
   pointer-events: none;
   background: var(--bg);
   opacity: 0;

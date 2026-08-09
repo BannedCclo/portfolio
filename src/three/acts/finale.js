@@ -10,7 +10,7 @@
    =========================================================== */
 
 import * as THREE from "three";
-import { camera, scene, registerAct, unregisterAct } from "../stage.js";
+import { camera, scene, registerAct, unregisterAct, PAGE_BG } from "../stage.js";
 import { clamp01, damp, lerp, deg } from "../../lib/motion.js";
 import { brainGeometryReady, synapseMat, tissueMat } from "./hero.js";
 
@@ -18,8 +18,7 @@ const reduceMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
 
-const HERO_BG = 0x1e1a1c;
-const FINALE_BG = 0x0a0a0d; // matches --bg, so the canvas blends into the page
+const PAGE_COLOR = new THREE.Color(PAGE_BG);
 
 export const finaleGroup = new THREE.Group();
 finaleGroup.position.set(0, -0.1, 0);
@@ -85,6 +84,18 @@ export function initFinale() {
       entered = damp(entered, centred, dt, 1.4);
       // fully faded out means nothing to draw
       act.wantsRender = entered > 0.015;
+
+      // Continuously eases toward the page's own tone rather than assuming
+      // scene.background already sits there. Normally it does — the hero
+      // resets it on its own deactivate (acts/hero.js) long before the finale
+      // ever comes near — so most of the time this is a no-op that confirms
+      // the colour rather than visibly changing it. It's what makes a fast
+      // scroll or an out-of-order activation self-correct instead of leaving
+      // a stale tint for the finale to reveal as a jump.
+      const bgEase = 1 - Math.exp(-dt * 3);
+      scene.background.lerp(PAGE_COLOR, bgEase);
+      scene.fog.color.lerp(PAGE_COLOR, bgEase);
+
       if (!act.wantsRender) return;
 
       if (!reduceMotion) spin += dt * 0.06;
@@ -103,17 +114,14 @@ export function initFinale() {
         glow.material.uniforms.uActivation.value = 0.72 * entered;
       }
     },
-    setActive(active) {
-      // the hero's warm backdrop would read as a colour shift this late in the
-      // page, so the finale renders against the page's own background
-      scene.background = new THREE.Color(active ? FINALE_BG : HERO_BG);
-      scene.fog.color.setHex(active ? FINALE_BG : HERO_BG);
-    },
   });
 
   return () => {
     unregisterAct(act);
-    scene.background = new THREE.Color(HERO_BG);
-    scene.fog.color.setHex(HERO_BG);
+    // <Contact> unmounting (route change, hot reload) — PAGE_BG is the
+    // correct neutral default here, not a hero-specific tone; the hero
+    // reclaims scene.background itself if and when it goes active again.
+    scene.background.setHex(PAGE_BG);
+    scene.fog.color.setHex(PAGE_BG);
   };
 }

@@ -12,7 +12,7 @@ export default function Manifesto() {
       </div>
 
       <header className="manifesto__head fade-in">
-        <span className="block__label" data-index="01">
+        <span className="block__label" data-index="04">
           Metas
         </span>
         <h2 className="manifesto__title">O que eu busco agora?</h2>

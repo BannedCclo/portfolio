@@ -21,26 +21,6 @@
   gap: var(--sp-6);
 }
 
-/* scrim between the 3D behind and the type in front — the brain is deliberately
-   dark, but a soft pool of background under the headline is what actually
-   guarantees the contrast holds while it rotates */
-.contact::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  /* sized to reach the GitHub/LinkedIn links below the mail address, not just
-     the headline — the synapse flashes are bright enough to wash out text
-     anywhere outside this pool */
-  background: radial-gradient(
-    ellipse 58% 46% at 50% 52%,
-    rgba(10, 10, 13, 0.78) 0%,
-    rgba(10, 10, 13, 0.5) 50%,
-    rgba(10, 10, 13, 0) 88%
-  );
-}
-
 .contact__eyebrow {
   font-family: var(--font-mono);
   font-size: var(--fs-2);
@@ -63,57 +43,143 @@
     0 0 90px rgba(10, 10, 13, 0.7);
 }
 
-.contact__mail {
-  display: inline-block;
-  font-family: var(--font-display);
-  font-size: clamp(1.1rem, 3vw, 2rem);
-  color: var(--ink);
-  padding-bottom: var(--sp-2);
+/* ---------- form ----------
+   Left-aligned inside the otherwise centred section: labels and free-text
+   answers read like a form, not a poem, even here. */
+.contact__form {
+  width: 100%;
+  max-width: 640px;
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  text-align: left;
+}
+
+.contact__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-6);
+}
+
+.contact__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.contact__field label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-shadow: 0 0 16px rgba(10, 10, 13, 0.9);
+}
+
+.contact__field input,
+.contact__field textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
   border-bottom: 1px solid var(--hairline-strong);
-  text-shadow: 0 0 24px rgba(10, 10, 13, 0.85);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--fs-4);
+  line-height: 1.5;
+  padding: var(--sp-2) 0;
+  transition: border-color var(--dur-fast) var(--ease-out-expo);
+  /* Overrides the global :focus-visible box outline (base.css) — the
+     underline changing to --copper below is this form's own focus
+     indicator, and a second boxed outline on top of it read as clutter. */
+  outline: none;
+}
+.contact__field input::placeholder,
+.contact__field textarea::placeholder {
+  color: var(--ink-mute);
+}
+.contact__field input:focus,
+.contact__field textarea:focus {
+  border-color: var(--copper);
+}
+.contact__field textarea {
+  resize: vertical;
+  min-height: 7em;
+}
+
+/* honeypot — off-screen and unreachable by keyboard/AT, never display:none
+   (some bots skip that specifically) */
+.contact__hp {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  left: -9999px;
+}
+
+.contact__form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-5);
+}
+
+.contact__submit {
+  /* <button> comes with browser chrome (background, border, system font) that
+     the rest of the site's CTAs never have to fight — the underline links
+     they're styled after are just <a> tags. Zero it out first. */
+  appearance: none;
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--fs-2);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: 0 0 2px;
+  border-bottom: 1px solid var(--hairline-strong);
   transition:
     color var(--dur-fast) var(--ease-out-expo),
-    border-color var(--dur-fast) var(--ease-out-expo);
-  word-break: break-word;
+    border-color var(--dur-fast) var(--ease-out-expo),
+    opacity var(--dur-fast) var(--ease-out-expo);
 }
-.contact__mail:hover {
+.contact__submit:hover:not(:disabled) {
+  color: var(--copper);
+  border-color: var(--copper);
+}
+.contact__submit:disabled {
+  opacity: 0.5;
+}
+
+.contact__status {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2);
+  line-height: 1.6;
+  text-shadow: 0 0 16px rgba(10, 10, 13, 0.9);
+}
+.contact__status--ok {
+  color: var(--copper);
+}
+.contact__status--error {
+  color: var(--ink-dim);
+}
+.contact__status--error a {
+  color: var(--ink);
+  border-bottom: 1px solid var(--hairline-strong);
+}
+.contact__status--error a:hover {
   color: var(--copper);
   border-color: var(--copper);
 }
 
-.contact__links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--sp-6);
-  margin-top: var(--sp-3);
-}
-.contact__links a {
-  font-family: var(--font-mono);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-  text-shadow: 0 0 16px rgba(10, 10, 13, 0.9);
-  position: relative;
-  padding-bottom: 3px;
-  transition: color var(--dur-fast) ease;
-}
-.contact__links a::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 0;
-  height: 1px;
-  background: var(--copper);
-  transition: width 0.35s var(--ease-out-expo);
-}
-.contact__links a:hover {
-  color: var(--ink);
-}
-.contact__links a:hover::after {
-  width: 100%;
+@media (max-width: 640px) {
+  .contact__row {
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
+  }
 }
 
 /* keeps the footer legible where it overlaps the canvas */

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { gsap } from "../lib/gsap.js";
+import logoIcon from "../assets/logo/dark/icon-bold.svg";
 
 /* CSS scroll-behavior is deliberately off (see styles/base.css): it fights
    ScrollTrigger pins, landing anchor jumps in the wrong place because the pin
@@ -10,10 +11,10 @@ const reduceMotion = window.matchMedia(
 ).matches;
 
 const NAV_LINKS = [
-  { href: "#manifesto", label: "Método" },
-  { href: "#trabalho", label: "Trabalho" },
-  { href: "#stack", label: "Ferramentas" },
   { href: "#sobre", label: "Sobre" },
+  { href: "#trabalho", label: "Experiência" },
+  { href: "#stack", label: "Ferramentas" },
+  { href: "#manifesto", label: "Metas" },
   { href: "#contato", label: "Contato" },
 ];
 
@@ -60,7 +61,7 @@ export default function Nav() {
   return (
     <nav className="nav">
       <a href="#top" className="nav__mark">
-        Marcelo Guimarães
+        <img src={logoIcon} alt="Marcelo Guimarães" width="200" height="200" />
       </a>
       <div className="nav__links">
         {NAV_LINKS.map((l) => (

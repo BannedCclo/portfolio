@@ -53,6 +53,14 @@ img {
   inset: 0;
   z-index: var(--z-stage);
   pointer-events: none;
+  /* stage.js toggles this opacity as a hard 0/1 flag (skip-render optimisation
+     for whichever act is near) — this transition is what turns an appearance
+     into a fade instead of a pop (e.g. the finale's brain surfacing behind
+     Contact). Appearing only: stage.js zeroes transition-duration inline
+     before hiding, since sections have no opaque background of their own —
+     a slow fade-out would leave the outgoing act's content visibly bleeding
+     into the next section for as long as it lasted. */
+  transition: opacity var(--dur-slow) var(--ease-out-expo);
 }
 #stage canvas {
   display: block;
@@ -93,11 +101,13 @@ img {
   mix-blend-mode: difference;
 }
 .nav__mark {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-style: italic;
-  font-size: 1.15rem;
-  letter-spacing: 0.01em;
+  display: block;
+  line-height: 0; /* an inline <img> otherwise leaves baseline whitespace below it */
+}
+.nav__mark img {
+  display: block;
+  height: 28px;
+  width: auto;
 }
 .nav__links {
   display: flex;
@@ -223,44 +233,42 @@ section.block {
   max-width: 52ch;
 }
 
-/* ---------- footer ---------- */
-footer {
-  border-top: 1px solid var(--hairline);
-  padding: var(--sp-7) var(--gutter);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--sp-4);
-  font-size: var(--fs-3);
+/* ---------- footer ----------
+   The footer is the shared Assets/Footer module, copied into
+   components/footer/ and re-dressed in the brand palette inside its own CSS
+   module (tokens with the module's original values as fallbacks). What this
+   file owns is only what the site hands the module: the left half's content,
+   plus the attribution note that sits below the whole thing. */
+.footer-note {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--fs-5);
+  line-height: 1.35;
+  text-align: center;
+  max-width: 24ch;
+  color: var(--ink);
+}
+.footer-copy {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2);
+  letter-spacing: var(--track-label);
   color: var(--ink-dim);
 }
-footer a {
+.model-credit {
+  display: block;
+  text-align: center;
+  font-size: var(--fs-1);
+  color: var(--ink-dim);
+  opacity: 0.6;
+  padding: var(--sp-4) var(--gutter) var(--sp-6);
+}
+.model-credit a {
   color: var(--ink);
   border-bottom: 1px solid var(--hairline);
 }
-footer a:hover {
+.model-credit a:hover {
   border-color: var(--copper);
   color: var(--copper);
-}
-.footer__signature {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sp-1);
-  font-size: var(--fs-1);
-  opacity: 0.6;
-  text-align: center;
-}
-.footer__credit {
-  flex-basis: 100%;
-  order: 3;
-  font-size: var(--fs-1);
-  opacity: 0.6;
-  margin-top: var(--sp-2);
-}
-.footer__credit a {
-  border-bottom: 1px solid var(--hairline);
 }
 
 /* ---------- generic scroll reveal ---------- */

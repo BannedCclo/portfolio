@@ -163,6 +163,25 @@
   max-width: 40ch;
 }
 
+/* nome da instituição: destaque em laranja dentro do parágrafo, como um marca-texto
+   — mesmo tom do node aceso ao lado (--copper), então o olho já associa a cor ao
+   marco antes mesmo de ler o texto */
+.tl__institution {
+  color: var(--copper);
+  font-weight: 500;
+}
+a.tl__institution {
+  border-bottom: 1px solid rgba(201, 124, 75, 0.4);
+  transition:
+    color var(--dur-fast) var(--ease-out-expo),
+    border-color var(--dur-fast) var(--ease-out-expo);
+}
+a.tl__institution:hover,
+a.tl__institution:focus-visible {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
 .tl {
   opacity: 0;
   transform: translateY(14px);

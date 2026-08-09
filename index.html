@@ -9,7 +9,12 @@
       content="Portfólio de Marcelo Guimarães, desenvolvedor de software."
     />
     <meta name="theme-color" content="#0a0a0d" />
-    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <!-- ?v=2 é cache-busting de propósito — browsers cacheiam favicon por
+         origem de um jeito que ignora Cache-Control normal; sem um parâmetro
+         novo na URL, quem já visitou o site antes continua vendo o favicon
+         antigo mesmo depois do arquivo mudar no servidor. Suba esse número
+         sempre que o favicon for trocado de novo. -->
+    <link rel="icon" href="/assets/favicon.svg?v=3" type="image/svg+xml" />
 
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
@@ -29,6 +34,13 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
     />
   </head>
   <body id="top">

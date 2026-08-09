@@ -14,8 +14,6 @@ export default function Hero() {
 
   return (
     <section id="brain" className="layer">
-      <div className="brain-fade-bottom" />
-
       <div className="brain-title-screen" id="brainTitleScreen">
         <p className="brain-title-screen__eyebrow">Portfólio</p>
         <h1 className="brain-title-screen__name">Marcelo Guimarães</h1>
@@ -31,13 +29,13 @@ export default function Hero() {
       </div>
 
       <div className="brain-page" id="brainPage0">
-        <p className="brain-eyebrow">Desenvolvedor de software — Brasil</p>
+        <p className="brain-eyebrow">Engenheiro de software — Brasil</p>
         <h2 className="brain-title">
-          Software com <em>precisão</em><br />e um pouco de peso.
+          Produtos digitais onde <em>engenharia</em> e <em>UX</em> andam de mãos dadas.
         </h2>
         <div className="brain-row">
           <p className="brain-sub">
-            Construo produtos digitais onde engenharia e forma andam juntas —
+            Construo produtos digitais onde ciência e forma andam juntas —
             do backend à última curva de uma animação.
           </p>
           <a className="brain-cta" href="#trabalho">
@@ -56,19 +54,16 @@ export default function Hero() {
       <div className="brain-page" id="brainPage1">
         <p className="brain-eyebrow">Como eu penso</p>
         <h2 className="brain-page-title">
-          Prefiro decisões simples e bem justificadas, mesmo quando o caminho
-          fácil pedia outra coisa.
+          Estar aberto ao aprendizado é a chave para elevar o nível de qualquer trabalho.
         </h2>
       </div>
 
       <div className="brain-page brain-page--right" id="brainPage2">
         <p className="brain-eyebrow">O que vem a seguir</p>
         <h2 className="brain-page-title">
-          Alguns lugares onde essa forma de pensar virou produto.
+          Nesse portfólio, você verá mais sobre a minha trajetória e o meu perfil.
         </h2>
       </div>
-
-      <div className="brain-exit-fade" id="brainExitFade" aria-hidden="true" />
     </section>
   );
 }

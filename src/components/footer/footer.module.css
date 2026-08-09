@@ -1,0 +1,163 @@
+/* ===========================================================
+   footer — módulo compartilhado (Assets/Footer), vestido com a marca
+
+   Estrutura e classes são as do módulo original. O que muda nesta cópia:
+   toda cor sai dos tokens de styles/tokens.css (com o valor original como
+   fallback, para o módulo seguir funcionando fora deste site), a tipografia
+   acompanha a do resto da página, e o slot do logo deixou de ser uma faixa de
+   altura fixa para caber o SVG animado da marca.
+   =========================================================== */
+
+.footer {
+  width: 100%;
+  min-height: 30vh;
+  background-color: var(--bg, #0e0b25);
+  box-sizing: border-box;
+  padding-top: var(--sp-8, 50px);
+  padding-bottom: var(--sp-7, 50px);
+  color: var(--ink, #fff);
+  font-family: var(--font-body, inherit);
+  /* a seção de contato acaba sobre o canvas 3D; a hairline marca onde o
+     documento volta a ser fundo sólido */
+  border-top: 1px solid var(--hairline, rgba(236, 232, 223, 0.12));
+}
+
+/* O logo aqui é o SVG animado da marca (components/animatedLogo) — um bloco
+   que ocupa a largura que lhe derem e guarda a proporção do arquivo, não uma
+   <img> presa a 50px de altura como no módulo original. Daí o slot ser uma
+   caixa de largura controlada, centrada. */
+.header {
+  width: min(340px, 66vw);
+  margin: 0 auto;
+}
+
+.header img,
+.header svg {
+  width: 100%;
+  height: auto;
+}
+
+.main {
+  margin-top: var(--sp-8, 50px);
+  width: 100%;
+  min-height: 30vh;
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  flex-wrap: wrap;
+  row-gap: var(--sp-7, 30px);
+  padding: 0 var(--gutter, clamp(16px, 5vw, 100px));
+  box-sizing: border-box;
+}
+
+.leftSection,
+.rightSection {
+  flex: 1 1 50%;
+  min-width: 260px;
+  height: 100%;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  gap: var(--sp-5, 24px);
+}
+
+.rightSection {
+  border-left: 1px solid var(--hairline-strong, #fff);
+}
+
+.signatureContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.signatureContainer p {
+  font-size: var(--fs-3, 1rem);
+  letter-spacing: 0.03em;
+  color: var(--ink, #fff);
+}
+
+.signatureContainer svg {
+  max-width: 250px;
+  height: auto;
+  margin-top: 20px;
+}
+
+.contactList {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, auto);
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: var(--sp-3, 8px);
+  font-family: var(--font-mono, inherit);
+  font-size: var(--fs-3, 1rem);
+}
+
+.contactItem {
+  display: contents;
+}
+
+/* rótulo e ícone são metadado: um degrau abaixo do link, mas ainda bem acima
+   do limite de contraste sobre --bg */
+.contactLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  color: var(--ink-dim, #fff);
+}
+
+.contactIcon {
+  width: 1em;
+  text-align: center;
+}
+
+.contactLink {
+  color: var(--ink, #fff);
+  text-align: end;
+  /* endereços longos (o e-mail) quebram em vez de esticar a coluna */
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid transparent;
+  transition:
+    color var(--dur-fast, 0.3s) ease,
+    border-color var(--dur-fast, 0.3s) ease;
+}
+
+.contactLink:hover,
+.contactLink:focus-visible {
+  color: var(--copper, #fff);
+  border-bottom-color: var(--copper, #fff);
+}
+
+@media (max-width: 768px) {
+  .leftSection {
+    border-bottom: 1px solid var(--hairline-strong, #fff);
+    padding-bottom: 20px;
+  }
+
+  .rightSection {
+    border-left: none;
+  }
+
+  .contactList {
+    row-gap: 12px;
+  }
+
+  .contactLabelText {
+    display: none;
+  }
+
+  .contactIcon {
+    font-size: 1.1em;
+  }
+
+  .contactLink {
+    text-align: start;
+  }
+}

@@ -65,6 +65,15 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.95;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
+// The neutral resting tone for scene.background/fog — matches --bg, so
+// whenever no act cares to tint the scene (the long stretch between the hero
+// and the finale) it already agrees with the flat CSS background sitting
+// under the canvas. Acts that want a different tone (the hero's warmer
+// HERO_BG) are responsible for restoring PAGE_BG themselves on deactivate —
+// see acts/hero.js — otherwise a stale tint lingers, invisible while the
+// canvas is hidden, until the next act reveals it as a sudden colour jump.
+export const PAGE_BG = 0x0a0a0d;
+
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1e1a1c);
 scene.fog = new THREE.Fog(0x1e1a1c, 8, 20);
@@ -233,6 +242,14 @@ function frame() {
   // nothing on screen wants the canvas — don't pay for a frame
   if (anyWants !== canvasShown) {
     canvasShown = anyWants;
+    // Asymmetric on purpose: appearing fades in gently (see base.css's
+    // #stage transition — this is what keeps the finale's brain from
+    // popping in behind Contact), but disappearing needs to be near-instant.
+    // Sections have no opaque background of their own — they rely on the
+    // canvas underneath already being invisible — so on a fast scroll past
+    // the hero, a slow fade-out would leave the outgoing brain visibly
+    // bleeding through the next section for as long as the fade lasts.
+    mount.style.transitionDuration = anyWants ? "" : "0s";
     mount.style.opacity = anyWants ? "1" : "0";
   }
   if (!anyWants) return;

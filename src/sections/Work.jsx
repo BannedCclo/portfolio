@@ -13,46 +13,39 @@ const ArrowIcon = () => (
   </svg>
 );
 
-// CONTEÚDO PLACEHOLDER — substituir por projetos reais.
-// Para cada projeto: ano, nome, o resultado em uma frase (de preferência com
-// número), stack e link. Para usar uma captura de tela real, troque
-// <ProjectArt seed={p.seed} /> por um <img> dentro de .proj__visual.
+// Projetos reais. Mais serão adicionados depois (ver histórico de conversa).
+// Para usar uma captura de tela real, troque <ProjectArt seed={p.seed} />
+// por um <img> dentro de .proj__visual.
 const PROJECTS = [
   {
-    seed: "painel-operacoes",
+    seed: "carbon",
     index: "01",
-    year: "2025",
-    name: "Painel de operações em tempo real",
+    year: "2025–2026",
+    name: "Carbon — plataforma de concessionária",
     outcome:
-      "Centralizou alertas que antes viviam em cinco ferramentas diferentes. O tempo médio até a primeira ação caiu de 40 para 9 minutos.",
-    stack: ["React", "Node", "WebSocket", "Postgres"],
+      "Site completo para uma concessionária: cadastro e busca de veículos com fotos, autenticação de usuários e preenchimento automático de endereço por CEP. Client e API publicados em produção.",
+    stack: ["React", "TypeScript", "Node.js", "Sequelize", "Postgres"],
+    href: "https://carbonluxury.vercel.app",
   },
   {
-    seed: "motor-recomendacao",
+    seed: "f1stats",
     index: "02",
-    year: "2024",
-    name: "Motor de recomendação para varejo",
+    year: "2026",
+    name: "F1stats — estatísticas de Fórmula 1",
     outcome:
-      "Substituiu uma lista de mais vendidos fixa por ranqueamento por sessão. Sete pontos percentuais a mais de conversão na vitrine inicial.",
-    stack: ["Python", "PyTorch", "Airflow", "Redis"],
+      "Todo o histórico da Fórmula 1 migrado para Postgres, com sincronização diária automatizada via GitHub Actions e API serverless — corridas, pilotos e classificações sempre atualizados sem intervenção manual.",
+    stack: ["React", "TypeScript", "Express", "Drizzle ORM", "Postgres"],
+    href: "https://f1stats-client.vercel.app",
   },
   {
-    seed: "identidade-institucional",
+    seed: "noharm",
     index: "03",
     year: "2023",
-    name: "Identidade visual e site institucional",
+    name: "NoHarm.ai — IA para farmácia clínica",
     outcome:
-      "Design system e site construídos juntos, do token de cor ao último estado de foco. Novas páginas passaram a sair em horas, não em sprints.",
-    stack: ["TypeScript", "Astro", "GSAP"],
-  },
-  {
-    seed: "pipeline-dados",
-    index: "04",
-    year: "2022",
-    name: "Pipeline de dados para faturamento",
-    outcome:
-      "Fechamento mensal que levava três dias de conferência manual passou a rodar sozinho, com trilha de auditoria por registro.",
-    stack: ["Python", "dbt", "BigQuery", "Terraform"],
+      "Atuei como dev de testes unitários em Python no sistema de IA que ajuda farmacêuticos clínicos a identificar erros de prescrição em hospitais.",
+    stack: ["Python", "Testes automatizados"],
+    href: "https://noharm.ai",
   },
 ];
 
@@ -81,7 +74,12 @@ export default function Work() {
                   <span>{p.year}</span>
                 </div>
                 <h3 className="proj__name">
-                  <a className="proj__link" href="#">
+                  <a
+                    className="proj__link"
+                    href={p.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     {p.name}
                   </a>
                 </h3>
