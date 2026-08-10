@@ -94,9 +94,9 @@ export default function Contact() {
     <section id="contato" className="contact layer">
       <p className="contact__eyebrow">Contato</p>
       <h2 className="contact__title">
-        Vamos construir
+        Vamos trabalhar
         <br />
-        alguma coisa.
+        juntos?
       </h2>
 
       <form className="contact__form" onSubmit={handleSubmit}>
