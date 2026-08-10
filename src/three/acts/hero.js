@@ -41,11 +41,12 @@ const reduceMotion = window.matchMedia(
 
 // The brain is modelled at a size tuned for desktop framing; at phone widths
 // it reads as oversized and crowds the text pages as it swings side to side.
-// Shrunk uniformly via brainGroup.scale rather than touching the desktop
-// keyframes above. Same 819/820 breakpoint as the rest of the page (see
-// sections/work.js).
+// Shrunk uniformly via brainGroup.scale, and (below, in update()) kept from
+// stepping sideways into a corner the way it does on desktop — a phone's
+// width doesn't have the room. Same 819/820 breakpoint as the rest of the
+// page (see sections/work.js).
 const mobileQuery = window.matchMedia("(max-width: 819px)");
-let isMobile = mobileQuery.matches;
+let isMobile = true || mobileQuery.matches;
 mobileQuery.addEventListener("change", (e) => {
   isMobile = e.matches;
 });
@@ -561,8 +562,12 @@ function update(t, dt) {
     pose[key] = damp(pose[key], sampleCurve(progress, KF[key]), dt);
   }
 
-  // narrower frames get a smaller lateral step so the brain stays on screen
-  const aspectFactor = clamp01(camera.aspect / 1.4);
+  // narrower frames get a smaller lateral step so the brain stays on screen;
+  // on mobile it's zeroed outright rather than just dampened — the rotation
+  // choreography (yaw/tilt/roll, all set below regardless) stays identical,
+  // only the sideways travel is dropped, since a phone's width leaves no
+  // room to step the brain into a corner without crowding the text further.
+  const aspectFactor = isMobile ? 0 : clamp01(camera.aspect / 1.4);
 
   brainGroup.rotation.x = ease * deg(pose.tilt);
   brainGroup.rotation.y = idleYaw * (1 - ease) + ease * deg(pose.yaw);
