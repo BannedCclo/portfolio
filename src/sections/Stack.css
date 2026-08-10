@@ -76,9 +76,13 @@
 .stack.is-revealed .stack__group li {
   opacity: 1;
   transform: translateY(0);
+  /* the stagger delay belongs only to the entrance (opacity/transform) — a
+     single transition-delay would otherwise apply to every property in the
+     list, including color, so hovering an item further down the continuous
+     --i index (i.e. in a column further right) picked up that same delay
+     and felt like a slower hover transition than the leftmost column. */
   transition:
-    opacity 0.7s var(--ease-out-expo),
-    transform 0.7s var(--ease-out-expo),
+    opacity 0.7s var(--ease-out-expo) calc(var(--i, 0) * 45ms),
+    transform 0.7s var(--ease-out-expo) calc(var(--i, 0) * 45ms),
     color var(--dur-fast) var(--ease-out-expo);
-  transition-delay: calc(var(--i, 0) * 45ms);
 }
