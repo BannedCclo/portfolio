@@ -310,25 +310,21 @@
 
    At phone widths the brain swings close enough behind the text that its
    pale tissue tone sits right under the ink-coloured copy, and the vignette
-   tuned for desktop framing isn't strong enough there. Rather than dial up
-   the shared vignette (which would also darken the desktop's more distant
-   brain), each text layer gets its own stronger scrim/shadow here, scoped to
-   mobile only.
+   tuned for desktop framing isn't strong enough there. The first screen
+   (title card) is left alone — it's a single centred line over a brain
+   that's still blurred and distant, and already reads fine. The three
+   paragraph-style blocks that follow as the brain settles (page0's
+   .brain-sub, and the .brain-page-title on page1/page2) get a stronger
+   background scrim plus a tighter text-shadow.
+
+   The text-shadow stays deliberately short-blurred: a wide `0 0 Npx` blur
+   with no offset spreads in every direction around each glyph, and on these
+   tight-leading multi-line blocks a large radius bleeds into the line above
+   or below, painting a dark smear across it instead of the intended edge
+   contrast. Small blur + higher opacity keeps the darkening hugging each
+   glyph.
    =========================================================== */
 @media (max-width: 819px) {
-  .brain-title-screen {
-    background: radial-gradient(
-      ellipse 78% 60% at 50% 50%,
-      rgba(10, 10, 13, 0.8) 0%,
-      rgba(10, 10, 13, 0.45) 55%,
-      rgba(10, 10, 13, 0) 85%
-    );
-  }
-  .brain-title-screen__name {
-    text-shadow:
-      0 0 30px rgba(10, 10, 13, 0.9),
-      0 0 60px rgba(10, 10, 13, 0.7);
-  }
   .brain-fade-bottom {
     height: 72vh;
     background: linear-gradient(
@@ -348,13 +344,11 @@
       rgba(10, 10, 13, 0) 78%
     );
   }
-  .brain-eyebrow,
-  .brain-title,
   .brain-page-title,
   .brain-sub {
     text-shadow:
-      0 0 4px rgba(10, 10, 13, 1),
-      0 0 24px rgba(10, 10, 13, 0.9),
-      0 0 48px rgba(10, 10, 13, 0.7);
+      0 0 2px rgba(10, 10, 13, 1),
+      0 0 6px rgba(10, 10, 13, 0.9),
+      0 0 14px rgba(10, 10, 13, 0.75);
   }
 }
