@@ -46,7 +46,7 @@ const reduceMotion = window.matchMedia(
 // width doesn't have the room. Same 819/820 breakpoint as the rest of the
 // page (see sections/work.js).
 const mobileQuery = window.matchMedia("(max-width: 819px)");
-let isMobile = true || mobileQuery.matches;
+let isMobile = mobileQuery.matches;
 mobileQuery.addEventListener("change", (e) => {
   isMobile = e.matches;
 });
