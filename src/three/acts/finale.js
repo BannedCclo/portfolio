@@ -49,6 +49,12 @@ export function initFinale() {
       darkMat.clearcoat = 0;
       darkMat.sheen = 0;
       darkMat.envMapIntensity = 0.1;
+      // Opacity itself rides `entered` (set in update()) — the mesh is opaque
+      // by default and group.visible is a hard on/off, so without this the
+      // silhouette snaps to full brightness the instant the section counts as
+      // near, ahead of whatever the shared canvas's own CSS fade is doing.
+      darkMat.transparent = true;
+      darkMat.opacity = 0;
 
       mesh = new THREE.Mesh(geometry, darkMat);
       finaleGroup.add(mesh);
@@ -72,8 +78,11 @@ export function initFinale() {
     group: finaleGroup,
     // this act exists only while its own section is on screen — with the
     // default 1.5-viewport lead the brain would surface behind the stack and
-    // about sections long before the page gets here
-    nearMargin: 0.1,
+    // about sections long before the page gets here. Wide enough to give
+    // `entered` (below) room to ramp across roughly half a viewport of
+    // scroll before Contact itself is on screen, so the fade-in reads as
+    // gradual instead of arriving already at full brightness.
+    nearMargin: 0.45,
     update(t, dt) {
       // how centred the section is in the viewport, 0..1
       const rect = section.getBoundingClientRect();
@@ -108,6 +117,7 @@ export function initFinale() {
       camera.position.set(0, 0.35, lerp(13.5, 11.8, entered));
       camera.lookAt(0, -0.1, 0);
 
+      if (mesh) mesh.material.opacity = entered;
       if (glow) {
         glow.material.uniforms.uTime.value = t;
         // a low idle — present, but nothing like the hero's full activation

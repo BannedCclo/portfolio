@@ -47,6 +47,7 @@
    Left-aligned inside the otherwise centred section: labels and free-text
    answers read like a form, not a poem, even here. */
 .contact__form {
+  position: relative;
   width: 100%;
   max-width: 640px;
   margin-top: var(--sp-3);
@@ -54,6 +55,24 @@
   flex-direction: column;
   gap: var(--sp-6);
   text-align: left;
+}
+
+/* A soft, edgeless pool of dark behind the fields — the brain's folds sit
+   right where the labels do, and the halo on the type alone (below) wasn't
+   enough once the mesh's own detail is behind rather than a flat tone. No
+   hard box: a radial fade reads as depth, not a card. */
+.contact__form::before {
+  content: "";
+  position: absolute;
+  inset: clamp(-3rem, -8vw, -1.5rem) clamp(-2.5rem, -8vw, -1rem);
+  z-index: -1;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(6, 6, 8, 0.72) 0%,
+    rgba(6, 6, 8, 0.46) 45%,
+    rgba(6, 6, 8, 0) 78%
+  );
+  pointer-events: none;
 }
 
 .contact__row {
@@ -73,8 +92,15 @@
   font-size: var(--fs-1);
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: var(--ink-dim);
-  text-shadow: 0 0 16px rgba(10, 10, 13, 0.9);
+  /* --ink-dim reads fine on the flat page bg, but the brain's own ridges and
+     highlights behind it have enough local contrast to eat a muted gray no
+     matter the shadow — the full-brightness ink plus a near-solid outline
+     is what actually holds up against that detail. */
+  color: var(--ink);
+  text-shadow:
+    0 0 2px rgba(4, 4, 6, 1),
+    0 1px 4px rgba(4, 4, 6, 1),
+    0 0 18px rgba(6, 6, 8, 0.95);
 }
 
 .contact__field input,
@@ -88,6 +114,7 @@
   font-size: var(--fs-4);
   line-height: 1.5;
   padding: var(--sp-2) 0;
+  text-shadow: 0 1px 4px rgba(6, 6, 8, 0.9);
   transition: border-color var(--dur-fast) var(--ease-out-expo);
   /* Overrides the global :focus-visible box outline (base.css) — the
      underline changing to --copper below is this form's own focus

@@ -10,6 +10,8 @@ const INSTITUTIONS = {
   COTEMIG: "https://www.cotemig.com.br/",
   NoHarm: "https://noharm.ai/",
   "PUC-MG": "https://www.pucminas.br/",
+  "curso online":
+    "https://www.coursera.org/learn/ciencia-computacao-python-conceitos/",
 };
 
 // CONTEÚDO PLACEHOLDER — substituir a trajetória por dados reais.
@@ -26,8 +28,11 @@ const TIMELINE = [
   {
     when: "2021",
     what: "Estudos autônomos",
-    where:
-      "Na quarentena, retomei meus estudos na área com um curso online da USP, de Python.",
+    where: [
+      "Na quarentena, retomei meus estudos na área com um ",
+      "curso online",
+      " da USP, de Python.",
+    ],
   },
   {
     when: "2023",
