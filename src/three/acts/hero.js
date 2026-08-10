@@ -132,6 +132,14 @@ const noiseGLSL = `
 // along a short fixed stretch of surface, on its own repeating schedule
 const FLASH_COUNT = quality.flashes;
 
+// click-triggered pulses — a small ring buffer so a quick double-click (or
+// two clicks in different spots) can have more than one wave travelling at
+// once instead of the newer one cutting the older off mid-spread
+const PULSE_COUNT = 8;
+const PULSE_LIFE = 2.2; // seconds a ring stays alive end to end
+const PULSE_SPEED = 2.6; // radians/sec the ring expands across the surface
+const PULSE_NEVER = -1000; // sentinel start time: far enough in the past to never render
+
 export const synapseMat = new THREE.ShaderMaterial({
   transparent: true,
   depthWrite: false,
@@ -154,6 +162,13 @@ export const synapseMat = new THREE.ShaderMaterial({
       ),
     },
     uFlashSeed: { value: new Array(FLASH_COUNT).fill(0) },
+    uPulseOrigin: {
+      value: Array.from(
+        { length: PULSE_COUNT },
+        () => new THREE.Vector3(0, 1, 0),
+      ),
+    },
+    uPulseStart: { value: new Array(PULSE_COUNT).fill(PULSE_NEVER) },
   },
   vertexShader: `
     varying vec3 vDir;
@@ -170,6 +185,8 @@ export const synapseMat = new THREE.ShaderMaterial({
     uniform vec3 uFlashA[${FLASH_COUNT}];
     uniform vec3 uFlashB[${FLASH_COUNT}];
     uniform float uFlashSeed[${FLASH_COUNT}];
+    uniform vec3 uPulseOrigin[${PULSE_COUNT}];
+    uniform float uPulseStart[${PULSE_COUNT}];
     varying vec3 vDir;
     ${noiseGLSL}
 
@@ -190,6 +207,32 @@ export const synapseMat = new THREE.ShaderMaterial({
       float behind = travel - s;
       float trail = behind >= 0.0 ? smoothstep(0.3, 0.0, behind) : 0.0;
       return band * trail;
+    }
+
+    // a wavefront that expands outward from a clicked point across the whole
+    // surface and fades as it goes — angle-from-origin stands in for surface
+    // distance, which is cheap and, on a roughly ball-shaped mesh like this
+    // one, close enough to read as travel rather than a flat expanding disc.
+    // \`vein\` and \`jitter\` come from the same noise field the resting veins
+    // use (computed once per fragment in main(), not per pulse) so the front
+    // reads as current finding its way along the brain's own vessels — bright
+    // where a vessel runs under it, ragged at the edge — rather than a flat,
+    // uniformly bright ring.
+    float synapsePulse(vec3 dir, vec3 origin, float start, float vein, float jitter){
+      float age = uTime - start;
+      if(age < 0.0 || age > ${PULSE_LIFE.toFixed(2)}) return 0.0;
+      float radius = age * ${PULSE_SPEED.toFixed(2)};
+      float angle = acos(clamp(dot(dir, origin), -1.0, 1.0));
+      float ring = smoothstep(0.2, 0.0, abs(angle - radius - jitter));
+      // a faint base keeps the wavefront legible off-vein; brighter where a
+      // vessel actually runs under it, so the ring's brightness ripples
+      // instead of reading as a flat band
+      float texture = 0.3 + 0.9 * vein;
+      // per-fragment flicker, phased by angle so it reads as sparking along
+      // the front rather than a uniform strobe
+      float flicker = 0.55 + 0.45 * sin(uTime * 13.0 + angle * 30.0 + jitter * 40.0);
+      float fade = smoothstep(${PULSE_LIFE.toFixed(2)}, ${(PULSE_LIFE * 0.5).toFixed(2)}, age);
+      return ring * texture * flicker * fade;
     }
 
     void main(){
@@ -214,6 +257,22 @@ export const synapseMat = new THREE.ShaderMaterial({
       flash = clamp(flash, 0.0, 1.0);
       col = mix(col, vec3(1.0), flash * 0.6);
       intensity += flash * uActivation * 2.4;
+
+      // click pulses are a direct response to the user, not part of the
+      // scroll-driven "thinking" narrative — they stay visible at full
+      // strength even before uActivation has woken the rest of this up.
+      // Reuses this fragment's own vein value (already computed above) as
+      // the pulse's texture, and one extra noise sample as a per-fragment
+      // radius offset, both shared by every pulse in the loop below instead
+      // of resampled per pulse.
+      float pulseJitter = snoise(vDirN * 5.0 + vec3(7.0, 3.0, 0.0)) * 0.08;
+      float pulse = 0.0;
+      for(int i = 0; i < ${PULSE_COUNT}; i++){
+        pulse += synapsePulse(vDirN, uPulseOrigin[i], uPulseStart[i], veins, pulseJitter);
+      }
+      pulse = clamp(pulse, 0.0, 1.0);
+      col = mix(col, vec3(1.0), pulse * 0.8);
+      intensity += pulse * 3.1;
 
       gl_FragColor = vec4(col * intensity, intensity);
     }
@@ -431,6 +490,10 @@ const camDeep = new THREE.Vector3(0, 2.0, 1.0); // exit: keeps closing in toward
 let mouseX = 0;
 let mouseY = 0;
 
+// ring buffer of click-triggered pulses — see spawnPulse() in initHero()
+let pulseCursor = 0;
+let lastPulseTime = PULSE_NEVER;
+
 let idleYaw = 0;
 const IDLE_YAW_MAX = Math.PI * 2; // at most one full turn before the approach takes over
 
@@ -525,7 +588,23 @@ function update(t, dt) {
   const activation = smoothstep((approachRaw - 0.55) / (0.94 - 0.55));
   synapseMat.uniforms.uTime.value = t;
   synapseMat.uniforms.uActivation.value = activation;
-  if (synapseMesh) synapseMesh.visible = activation > 0.001;
+  // a pulse must be able to show on its own, so the mesh also stays visible
+  // for as long as the most recent one is still alive, independent of
+  // uActivation — this is what lets a click read on the still-dormant intro
+  // brain, well before the scroll-driven synapses have woken up
+  const pulseAlive = t - lastPulseTime < PULSE_LIFE;
+  if (synapseMesh) synapseMesh.visible = activation > 0.001 || pulseAlive;
+}
+
+/** Registers a new expanding pulse centred on `originLocal` (a unit vector in
+ *  the brain mesh's local space — see onClick() below) and overwrites the
+ *  oldest slot in the ring buffer once all are in use. */
+function spawnPulse(originLocal) {
+  const t = synapseMat.uniforms.uTime.value;
+  synapseMat.uniforms.uPulseOrigin.value[pulseCursor].copy(originLocal);
+  synapseMat.uniforms.uPulseStart.value[pulseCursor] = t;
+  pulseCursor = (pulseCursor + 1) % PULSE_COUNT;
+  lastPulseTime = t;
 }
 
 /** Called once from <Hero>'s mount effect. Returns a cleanup that undoes
@@ -594,6 +673,26 @@ export function initHero() {
   };
   window.addEventListener("pointermove", onPointerMove);
 
+  // click-to-pulse: raycast against the real mesh so the ring starts exactly
+  // where the cursor lands on the brain, not just its projected centre.
+  // #stage (the canvas) is pointer-events:none — see base.css — so this has
+  // to live on the section itself rather than the canvas, using plain
+  // viewport coordinates for the NDC conversion since the camera always
+  // renders at the full window size (see stage.js's resize()).
+  const raycaster = new THREE.Raycaster();
+  const pointerNDC = new THREE.Vector2();
+  const onClick = (e) => {
+    if (!brainMesh) return;
+    pointerNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointerNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointerNDC, camera);
+    const hit = raycaster.intersectObject(brainMesh, false)[0];
+    if (!hit) return;
+    const origin = brainMesh.worldToLocal(hit.point.clone()).normalize();
+    spawnPulse(origin);
+  };
+  if (!reduceMotion) section.addEventListener("click", onClick);
+
   let trigger = null;
   if (!reduceMotion) {
     trigger = ScrollTrigger.create({
@@ -616,6 +715,7 @@ export function initHero() {
 
   return () => {
     window.removeEventListener("pointermove", onPointerMove);
+    if (!reduceMotion) section.removeEventListener("click", onClick);
     trigger?.kill();
     document.body.classList.remove("is-hero");
     unregisterAct(act);
