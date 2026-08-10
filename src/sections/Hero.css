@@ -207,6 +207,16 @@
   font-weight: 400;
   color: var(--copper);
 }
+/* Smaller screens put the brain closer to full-frame behind this title, so
+   the ambient shadow needs more reach/opacity to keep the text readable. */
+@media (max-width: 640px) {
+  .brain-title {
+    text-shadow:
+      0 0 28px rgba(10, 10, 13, 0.95),
+      0 0 60px rgba(10, 10, 13, 0.9),
+      0 0 100px rgba(10, 10, 13, 0.75);
+  }
+}
 .brain-page-title {
   font-family: var(--font-display);
   font-style: italic;
