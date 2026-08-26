@@ -18,4 +18,11 @@ import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
+// GSAP auto-refreshes on window "load", but web fonts can still swap in
+// after that on a slow connection/device, reflowing text and leaving every
+// trigger's cached start/end stale — most visibly the hero's pin, whose
+// "+=380%" then no longer lines up with the actual scroll distance. Cheap
+// and idempotent, so safe to fire regardless of how many triggers exist yet.
+document.fonts?.ready?.then(() => ScrollTrigger.refresh());
+
 export { gsap, ScrollTrigger, ScrollToPlugin };

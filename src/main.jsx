@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
+import { mountDebugPanel } from "./lib/debugPanel.js";
 
 // global design system — loaded once, ahead of every section's own CSS
 import "./styles/tokens.css";
@@ -13,6 +14,7 @@ import "./styles/reduced-motion.css";
    missing. Runs before React renders anything, same as the static version. */
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 window.scrollTo(0, 0);
+mountDebugPanel();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

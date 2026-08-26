@@ -12,6 +12,18 @@
    finally the camera pushes in while the scene dissolves to the page
    background — so it disappears just before the camera would reach it.
 
+   Under prefers-reduced-motion the pin never exists (see initHero()'s
+   `else` branch) and update() takes an entirely separate path, updateStatic()
+   — the brain holds the exact settled top-down pose the approach ends at
+   (also, incidentally, the angle with the most margin against the mesh's one
+   small hole — see tissueMat's FrontSide comment), title card and the first
+   text page shown together instead of staged, pages two and three dropped
+   entirely, and a fade continuously tied to how far #brain has scrolled past.
+   The synapse shimmer keeps animating even though the brain itself never
+   moves or responds to clicks — it's surface-local, not the kind of motion
+   prefers-reduced-motion is about, and it's what stands in for the sequence
+   the reduced path otherwise skips.
+
    DOM lookups and listeners live inside initHero() rather than at module
    scope: this module is imported (and evaluated) the moment React starts
    building the bundle, well before <Hero>'s JSX has actually rendered
@@ -24,7 +36,16 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { camera, scene, registerAct, unregisterAct, quality, PAGE_BG } from "../stage.js";
+import {
+  camera,
+  scene,
+  registerAct,
+  unregisterAct,
+  quality,
+  PAGE_BG,
+  warmUpStage,
+  markStageReady,
+} from "../stage.js";
 import { ScrollTrigger } from "../../lib/gsap.js";
 import {
   clamp01,
@@ -57,6 +78,10 @@ const MOBILE_BRAIN_SCALE = 0.74;
 // Contact into the hero, since finale is the only other act that ever tints
 // scene.background/fog.
 export const HERO_BG = 0x1e1a1c;
+// scene.fog.near's resting value (matches the Fog() constructor in stage.js)
+// — restored on deactivate so a mid-approach scroll-away doesn't leave the
+// fog dense for whatever act looks at the scene next.
+const FOG_NEAR_REST = 8;
 
 export const brainGroup = new THREE.Group();
 
@@ -69,7 +94,15 @@ export const tissueMat = new THREE.MeshPhysicalMaterial({
   sheen: 0.15,
   sheenColor: new THREE.Color(0xc97c4b),
   envMapIntensity: 0.55,
-  side: THREE.DoubleSide,
+  // The bake clips the mesh below y=79 (see tools/bake-brain.mjs), leaving a
+  // small closed hole at the back of the base. DoubleSide used to paper over
+  // that; it's a well-hidden, one-loop hole (verified against the whole
+  // choreography, including the finale's spin) that never faces the camera,
+  // and FrontSide halves the fragments actually rasterised on a fully closed
+  // mesh — every back-face was wasted work. The bake also fans a cap over
+  // the hole now, so this is safe even at the choreography's tightest
+  // moment (~8° of margin at the very start of the approach).
+  side: THREE.FrontSide,
 });
 
 let brainMesh = null;
@@ -129,9 +162,12 @@ const noiseGLSL = `
   }
 `;
 
-// independent "transmission" flashes — each a quick point of light darting
-// along a short fixed stretch of surface, on its own repeating schedule
-const FLASH_COUNT = quality.flashes;
+// The shader itself always compiles the same 12-slot loop regardless of
+// tier — see uFlashCount below, a uniform rather than a template-literal
+// constant, so the watchdog (three/stage.js) can turn flashes down at
+// runtime without recompiling the program (and so only one program variant
+// ever needs to compile in the first place).
+const FLASH_COUNT = 12;
 
 // click-triggered pulses — a small ring buffer so a quick double-click (or
 // two clicks in different spots) can have more than one wave travelling at
@@ -150,6 +186,10 @@ export const synapseMat = new THREE.ShaderMaterial({
     uActivation: { value: 0 },
     uColorA: { value: new THREE.Color(0xffb27a) },
     uColorB: { value: new THREE.Color(0x8fd6e6) },
+    // how many of the 12 flash slots actually draw — quality.flashes at
+    // start (6/9/12 by tier), and the watchdog can cut it to 3 at its last
+    // degrade step
+    uFlashCount: { value: quality.flashes },
     uFlashA: {
       value: Array.from(
         { length: FLASH_COUNT },
@@ -163,6 +203,10 @@ export const synapseMat = new THREE.ShaderMaterial({
       ),
     },
     uFlashSeed: { value: new Array(FLASH_COUNT).fill(0) },
+    // whether any click-pulse is currently alive — gates the entire pulse
+    // block (including its own extra noise sample) off when nothing is
+    // playing, which is true almost all the time
+    uPulseAny: { value: 0 },
     uPulseOrigin: {
       value: Array.from(
         { length: PULSE_COUNT },
@@ -172,9 +216,22 @@ export const synapseMat = new THREE.ShaderMaterial({
     uPulseStart: { value: new Array(PULSE_COUNT).fill(PULSE_NEVER) },
   },
   vertexShader: `
+    uniform float uTime;
     varying vec3 vDir;
+    // n1/n2 are smooth functions of direction (feature scale ~1/7.31 units);
+    // only the threshold applied to them in the fragment shader is fine, so
+    // evaluating the noise per-vertex and interpolating linearly costs one
+    // snoise() per vertex instead of per fragment — on a phone that's the
+    // difference between ~15k evaluations and ~380k.
+    varying vec2 vNoise;
+    ${noiseGLSL}
     void main(){
       vDir = normalize(position);
+      vec3 p = vDir * 3.4;
+      vNoise = vec2(
+        snoise(p + vec3(0.0, 0.0, uTime * 0.06)),
+        snoise(p * 2.15 + vec3(50.0, 12.0, 4.0))
+      );
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
@@ -183,12 +240,15 @@ export const synapseMat = new THREE.ShaderMaterial({
     uniform float uActivation;
     uniform vec3 uColorA;
     uniform vec3 uColorB;
+    uniform float uFlashCount;
     uniform vec3 uFlashA[${FLASH_COUNT}];
     uniform vec3 uFlashB[${FLASH_COUNT}];
     uniform float uFlashSeed[${FLASH_COUNT}];
+    uniform float uPulseAny;
     uniform vec3 uPulseOrigin[${PULSE_COUNT}];
     uniform float uPulseStart[${PULSE_COUNT}];
     varying vec3 vDir;
+    varying vec2 vNoise;
     ${noiseGLSL}
 
     // a single quick pulse of light travelling a short arc between two nearby
@@ -238,9 +298,8 @@ export const synapseMat = new THREE.ShaderMaterial({
 
     void main(){
       vec3 vDirN = normalize(vDir);
-      vec3 p = vDirN * 3.4;
-      float n1 = snoise(p + vec3(0.0, 0.0, uTime*0.06));
-      float n2 = snoise(p*2.15 + vec3(50.0, 12.0, 4.0));
+      float n1 = vNoise.x;
+      float n2 = vNoise.y;
       float veinsA = smoothstep(0.055, 0.0, abs(n1));
       float veinsB = smoothstep(0.038, 0.0, abs(n2));
       float veins = clamp(veinsA + veinsB*0.6, 0.0, 1.0);
@@ -253,6 +312,7 @@ export const synapseMat = new THREE.ShaderMaterial({
 
       float flash = 0.0;
       for(int i = 0; i < ${FLASH_COUNT}; i++){
+        if(float(i) >= uFlashCount) break;
         flash += synapseFlash(vDirN, uFlashA[i], uFlashB[i], uFlashSeed[i]);
       }
       flash = clamp(flash, 0.0, 1.0);
@@ -262,18 +322,19 @@ export const synapseMat = new THREE.ShaderMaterial({
       // click pulses are a direct response to the user, not part of the
       // scroll-driven "thinking" narrative — they stay visible at full
       // strength even before uActivation has woken the rest of this up.
-      // Reuses this fragment's own vein value (already computed above) as
-      // the pulse's texture, and one extra noise sample as a per-fragment
-      // radius offset, both shared by every pulse in the loop below instead
-      // of resampled per pulse.
-      float pulseJitter = snoise(vDirN * 5.0 + vec3(7.0, 3.0, 0.0)) * 0.08;
+      // Whole block is skipped (uPulseAny) when nothing is playing, which is
+      // true almost all the time — reuses this fragment's own vein value
+      // (already computed above) as the pulse's texture.
       float pulse = 0.0;
-      for(int i = 0; i < ${PULSE_COUNT}; i++){
-        pulse += synapsePulse(vDirN, uPulseOrigin[i], uPulseStart[i], veins, pulseJitter);
+      if(uPulseAny > 0.5){
+        float pulseJitter = snoise(vDirN * 5.0 + vec3(7.0, 3.0, 0.0)) * 0.08;
+        for(int i = 0; i < ${PULSE_COUNT}; i++){
+          pulse += synapsePulse(vDirN, uPulseOrigin[i], uPulseStart[i], veins, pulseJitter);
+        }
+        pulse = clamp(pulse, 0.0, 1.0);
+        col = mix(col, vec3(1.0), pulse * 0.8);
+        intensity += pulse * 3.1;
       }
-      pulse = clamp(pulse, 0.0, 1.0);
-      col = mix(col, vec3(1.0), pulse * 0.8);
-      intensity += pulse * 3.1;
 
       gl_FragColor = vec4(col * intensity, intensity);
     }
@@ -289,17 +350,26 @@ export const synapseMat = new THREE.ShaderMaterial({
    STL, a weld of ~242k loose vertices and fourteen Taubin smoothing passes.
    It is entirely deterministic, so the browser has no business repeating it.
    Re-run `npm run bake-brain` if the source mesh or its cleanup ever changes.
+
+   Two baked variants exist: brain.glb (full) and brain-low.glb (decimated,
+   for coarse-pointer devices — see quality.mesh in stage.js). The choice has
+   to be synchronous, at module evaluation, because brainGeometryReady is a
+   module-scope Promise that acts/finale.js also awaits — no branch here ever
+   awaits anything before creating it.
 --------------------------------------------------------------- */
+const BRAIN_URL =
+  quality.mesh === "low" ? "/assets/brain-low.glb" : "/assets/brain.glb";
+
 brainGeometryReady = new Promise((resolve, reject) => {
   new GLTFLoader().load(
-    "/assets/brain.glb",
+    BRAIN_URL,
     (gltf) => {
       let geometry = null;
       gltf.scene.traverse((o) => {
         if (!geometry && o.isMesh) geometry = o.geometry;
       });
       if (!geometry) {
-        reject(new Error("assets/brain.glb nao contem nenhuma malha"));
+        reject(new Error(`${BRAIN_URL} nao contem nenhuma malha`));
         return;
       }
 
@@ -313,7 +383,9 @@ brainGeometryReady = new Promise((resolve, reject) => {
 
       // seed the transmission flashes with real surface points: each is a
       // short arc from a random vertex to a nearby jittered direction, in the
-      // same normalize(position) domain the shader works in
+      // same normalize(position) domain the shader works in. All 12 slots are
+      // always seeded — uFlashCount (not the array length) decides how many
+      // actually draw.
       const posAttr = geometry.attributes.position;
       const flashA = [];
       const flashB = [];
@@ -345,11 +417,19 @@ brainGeometryReady = new Promise((resolve, reject) => {
     },
     undefined,
     (err) => {
-      console.error("Falha ao carregar /assets/brain.glb:", err);
+      console.error(`Falha ao carregar ${BRAIN_URL}:`, err);
       reject(err);
     },
   );
 });
+
+// Compiles the brain's shader programs (and uploads its geometry with one
+// throwaway render) while the canvas is still hidden behind #stage's
+// opacity:0 — see warmUpStage()'s own comment in stage.js for what this
+// does and doesn't cover. A load failure still has to reveal the canvas
+// (there may be nothing to show, but the rest of the page must not stay
+// dark), hence the catch.
+brainGeometryReady.then(() => warmUpStage()).catch(() => markStageReady());
 
 /* ---------------------------------------------------------------
    scroll phases
@@ -364,9 +444,16 @@ export const PHASE = {
   exitStart: 0.88,
 };
 
-let progress = reduceMotion ? 0.3 : 0;
+let progress = 0;
 
-const BRAIN_BLUR_MAX = 3; // px
+// High tier keeps the CSS blur for the opening beat (tuned down from the
+// original 3px); low/mid tiers use scene.fog instead — see useFogApproach
+// below, a full-viewport gaussian filter every frame is one of the more
+// expensive things this scene does, and fog is already compiled into every
+// material for free.
+const BRAIN_BLUR_MAX = 2; // px
+const useFogApproach = quality.tier !== "high";
+let lastFilter = "none";
 
 // populated by initHero() once #brain and friends exist in the DOM
 let section,
@@ -380,22 +467,13 @@ let section,
   pageEls;
 
 function onProgress(p) {
+  // Only records the value now — this used to also write hint/progress-bar/
+  // page-visibility/blur/title-opacity straight to the DOM from inside
+  // GSAP's own scroll callback, on top of the RAF loop's own per-frame
+  // writes below reading the same `progress`. Two write sources interleaved
+  // with the RAF loop's getBoundingClientRect() reads forced layout on
+  // every scroll tick; update() below is the only writer now.
   progress = p;
-  hintEl.style.opacity = p < 0.04 ? 1 : 0;
-  progressEl.style.setProperty("--p", p);
-
-  pageEls.forEach((el, i) => {
-    const [start, end] = PHASE.pages[i];
-    el.classList.toggle("is-visible", p >= start && p <= end);
-  });
-
-  // the brain starts discreetly blurred and sharpens in step with the same
-  // ease driving the approach, finishing exactly as it settles
-  const approachEase = smoothstep(clamp01(p / PHASE.approachEnd));
-  stageEl.style.filter = `blur(${BRAIN_BLUR_MAX * (1 - approachEase)}px)`;
-
-  // the name card lives entirely in that blurred, distant opening beat
-  titleScreenEl.style.opacity = 1 - approachEase;
 }
 
 /* ---------------------------------------------------------------
@@ -484,6 +562,29 @@ const pose = {
   exit: 0,
 };
 
+// The fixed pose used under prefers-reduced-motion: exactly the settled
+// top-down pose the approach ends at (ease=1, before page1/page2 ever pull
+// tilt/yaw away from it) — ties this to TILT_TARGET_DEG/YAW_TARGET_DEG
+// rather than duplicating the numbers, so the two stay in sync if the
+// settled pose is ever retuned. It's also the single safest angle in the
+// whole choreography against the mesh's one small hole (see tissueMat's
+// FrontSide comment) — top-down points the hole almost straight away from
+// the camera.
+const STATIC_POSE = {
+  tilt: TILT_TARGET_DEG,
+  yaw: YAW_TARGET_DEG,
+  roll: 0,
+  posY: 0,
+  posZ: 0.4,
+  scale: 1,
+  camY: 0,
+};
+
+// A small permanent softness rather than none at all — the brain now sits
+// behind readable text for as long as the hero is on screen (not just the
+// opening beat), so it stays a backdrop rather than competing for focus.
+const STATIC_BLUR_PX = 1.5;
+
 const camStart = new THREE.Vector3(0, 0.25, 8.1);
 const camEnd = new THREE.Vector3(0, 2.0, 6.7);
 const camDeep = new THREE.Vector3(0, 2.0, 1.0); // exit: keeps closing in toward the brain
@@ -504,6 +605,11 @@ const camPos = new THREE.Vector3();
 let act = null;
 
 function update(t, dt) {
+  if (reduceMotion) {
+    updateStatic(t, dt);
+    return;
+  }
+
   // pose.exit chases exitEase over wall-clock time (damp(), not scroll
   // distance) — computed unconditionally, first thing, so it keeps
   // converging every frame this runs regardless of what wantsRender was on
@@ -513,25 +619,54 @@ function update(t, dt) {
   );
   pose.exit = damp(pose.exit, exitEase, dt);
 
+  const exitOpacity = smoothstep(clamp01(pose.exit / 0.7));
+  exitFadeEl.style.opacity = exitOpacity;
+
+  // Scroll-driven chrome, written every frame from `progress` rather than
+  // from GSAP's own onUpdate callback (see onProgress above) — unconditional,
+  // same as before, since none of this depends on wantsRender.
+  const approachRaw = clamp01(progress / PHASE.approachEnd);
+  const ease = smoothstep(approachRaw);
+
+  hintEl.style.opacity = progress < 0.04 ? 1 : 0;
+  progressEl.style.setProperty("--p", progress);
+  pageEls.forEach((el, i) => {
+    const [start, end] = PHASE.pages[i];
+    el.classList.toggle("is-visible", progress >= start && progress <= end);
+  });
+
+  if (useFogApproach) {
+    scene.fog.near = lerp(1.2, FOG_NEAR_REST, ease);
+  } else {
+    // the brain starts discreetly blurred and sharpens in step with the same
+    // ease driving the approach, finishing exactly as it settles. Quality
+    // level 1+ (the watchdog's first degrade step) turns this off outright —
+    // a full-viewport filter every frame is expensive, and it only exists for
+    // the first 22% of the scroll anyway.
+    const blurPx = quality.level >= 1 ? 0 : BRAIN_BLUR_MAX * (1 - ease);
+    const nextFilter = blurPx > 0.02 ? `blur(${blurPx.toFixed(2)}px)` : "none";
+    if (nextFilter !== lastFilter) {
+      stageEl.style.filter = nextFilter;
+      lastFilter = nextFilter;
+    }
+  }
+  titleScreenEl.style.opacity = 1 - ease;
+
   // Release the canvas once there is nothing left to show. Two conditions,
   // because each covers a case the other misses: the exit fade having
   // actually finished — gated on the overlay's own opacity, not raw
   // progress. Progress can reach 1 almost instantly on a fast scroll while
-  // pose.exit (which the opacity below is drawn from) is still catching up;
+  // pose.exit (which the opacity above is drawn from) is still catching up;
   // gating on progress used to hide the canvas mid-fade, with the brain only
   // partially covered by .brain-exit-fade's flat overlay — a visibly uneven
   // cut, worse the faster the scroll. Gating on the overlay's own opacity
   // instead means the canvas only ever disappears once it has already gone
   // fully opaque and uniform, however long that takes in real time — the
   // same fixed duration regardless of scroll speed. The second condition,
-  // the section simply not being on screen, is the only signal available
-  // under reduced motion, where no pin exists, progress is frozen at a
-  // static pose forever, and pose.exit (tied to PHASE.exitStart, which that
-  // frozen progress never reaches) would otherwise never trigger it.
-  const exitOpacity = smoothstep(clamp01(pose.exit / 0.7));
-  exitFadeEl.style.opacity = exitOpacity;
+  // the section simply not being on screen, covers a fast scrollbar drag or
+  // instant scrollTo crossing the whole pin distance in one step.
   if (act) {
-    const rect = section.getBoundingClientRect();
+    const rect = act.rect;
     const onScreen = rect.bottom > 0 && rect.top < window.innerHeight;
     act.wantsRender = exitOpacity < 1 && onScreen;
 
@@ -547,9 +682,6 @@ function update(t, dt) {
 
     if (!act.wantsRender) return;
   }
-
-  const approachRaw = clamp01(progress / PHASE.approachEnd);
-  const ease = smoothstep(approachRaw);
 
   if (!reduceMotion) {
     idleYaw = Math.min(
@@ -593,12 +725,65 @@ function update(t, dt) {
   const activation = smoothstep((approachRaw - 0.55) / (0.94 - 0.55));
   synapseMat.uniforms.uTime.value = t;
   synapseMat.uniforms.uActivation.value = activation;
+  synapseMat.uniforms.uFlashCount.value =
+    quality.level >= 5 ? Math.min(quality.flashes, 3) : quality.flashes;
   // a pulse must be able to show on its own, so the mesh also stays visible
   // for as long as the most recent one is still alive, independent of
   // uActivation — this is what lets a click read on the still-dormant intro
   // brain, well before the scroll-driven synapses have woken up
   const pulseAlive = t - lastPulseTime < PULSE_LIFE;
+  synapseMat.uniforms.uPulseAny.value = pulseAlive ? 1 : 0;
   if (synapseMesh) synapseMesh.visible = activation > 0.001 || pulseAlive;
+}
+
+/** Reduced-motion path: a fixed top-down pose, the title card and first text
+ *  page shown together, and a fade continuously tied to how far #brain has
+ *  scrolled past rather than the binary "is any part of the section on
+ *  screen" test the dynamic path can rely on (there, that test is only ever
+ *  the exit-fade's last resort — here it is the only signal there is, since
+ *  progress itself never advances). The pose and camera never change once
+ *  set, but the render still has to run every frame: the synapse shimmer
+ *  (uTime-driven) keeps animating, so unlike a genuinely static act this one
+ *  never opts into stage.js's dirty-flag skip. */
+function updateStatic(t, dt) {
+  const rect = act.rect;
+  const vh = window.innerHeight;
+  // 1 while the section still dominates the screen, easing down as its
+  // bottom edge rises through the last 75% of a viewport of scroll
+  const visible = smoothstep(
+    clamp01((rect.bottom - vh * 0.15) / (vh * 0.75)),
+  );
+
+  exitFadeEl.style.opacity = 1 - visible;
+  if (act) {
+    act.wantsRender = visible > 0.01;
+    const vignetteOpacity = act.wantsRender ? 1 : 0;
+    vignetteEl.style.opacity = vignetteOpacity;
+    fadeBottomEl.style.opacity = vignetteOpacity;
+    if (!act.wantsRender) return;
+  }
+
+  brainGroup.rotation.set(
+    deg(STATIC_POSE.tilt),
+    deg(STATIC_POSE.yaw),
+    deg(STATIC_POSE.roll),
+  );
+  brainGroup.position.set(0, STATIC_POSE.posY, STATIC_POSE.posZ);
+  brainGroup.scale.setScalar(
+    STATIC_POSE.scale * (isMobile ? MOBILE_BRAIN_SCALE : 1),
+  );
+
+  camera.position.set(camEnd.x, camEnd.y + STATIC_POSE.camY, camEnd.z);
+  camera.lookAt(0, -0.18, 0);
+
+  // The waves keep playing at the same strength the settled dynamic pose
+  // would show (uActivation 1, the full flash count) — click pulses stay
+  // off since there's no click listener under reduceMotion (see initHero()).
+  synapseMat.uniforms.uTime.value = t;
+  synapseMat.uniforms.uActivation.value = 1;
+  synapseMat.uniforms.uFlashCount.value = quality.flashes;
+  synapseMat.uniforms.uPulseAny.value = 0;
+  if (synapseMesh) synapseMesh.visible = true;
 }
 
 /** Registers a new expanding pulse centred on `originLocal` (a unit vector in
@@ -639,7 +824,11 @@ export function initHero() {
     setActive(active) {
       // the blur belongs to the hero alone — leave the shared canvas clean
       // for every other act
-      if (!active) stageEl.style.filter = "none";
+      if (!active) {
+        stageEl.style.filter = "none";
+        lastFilter = "none";
+        scene.fog.near = FOG_NEAR_REST;
+      }
 
       // Vignette/fade-bottom/exit-fade are only ever turned OFF from inside
       // update() (mirroring wantsRender), and update() only runs while
@@ -715,7 +904,14 @@ export function initHero() {
         document.body.classList.toggle("is-hero", self.isActive),
     });
   } else {
-    onProgress(0.3);
+    // No pin, no scroll-driven progress — #brain stays the same 100svh
+    // frame it always is, updateStatic() above drives the 3D, and the title
+    // card plus the first text page are shown together up front. Pages two
+    // and three (#brainPage1/#brainPage2) are hidden entirely in
+    // Hero.css's reduced-motion block, not just left unstaged.
+    titleScreenEl.style.opacity = 1;
+    pageEls[0].classList.add("is-visible");
+    stageEl.style.filter = `blur(${STATIC_BLUR_PX}px)`;
   }
 
   return () => {

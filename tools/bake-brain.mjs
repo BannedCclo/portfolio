@@ -1,5 +1,5 @@
 /* ===========================================================
-   bake-brain.mjs — assets/brain.stl  →  assets/brain.glb
+   bake-brain.mjs — assets/brain.stl  →  assets/brain.glb + assets/brain-low.glb
 
    The runtime used to do all of this in the browser, on the main thread, on
    every single load: download 4 MB of uncompressed STL, rebuild the geometry
@@ -12,16 +12,30 @@
    same points three.js would. The baked mesh has to be identical, not merely
    similar: the hero's camera framing and scale were tuned against it.
 
+   Two files come out of one run: brain.glb (full detail, uint16 indices +
+   quantized SHORT normals — still float32 positions, see writeGLB's own
+   comment on why those aren't quantized) and brain-low.glb (decimated via
+   meshoptimizer for coarse-pointer devices — see quality.mesh in
+   three/stage.js, which picks between them at runtime).
+
    usage:  node tools/bake-brain.mjs
    =========================================================== */
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { MeshoptSimplifier, MeshoptEncoder } from "meshoptimizer";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(root, "assets-source", "brain.stl");
-const OUT = join(root, "public", "assets", "brain.glb");
+const OUT_FULL = join(root, "public", "assets", "brain.glb");
+const OUT_LOW = join(root, "public", "assets", "brain-low.glb");
+
+// Where the sulci relief — the thing that actually reads as "brain" rather
+// than "smooth ovoid" — starts visibly softening is the thing to watch when
+// this number changes. Compare page1/page2 (the lateral profiles) at zoom;
+// they show relief, the top-down page0 pose barely does.
+const LOW_POLY_TARGET_TRIS = 18000;
 
 /* ---------------- binary STL → flat triangle soup ---------------- */
 function readBinarySTL(buf) {
@@ -99,6 +113,93 @@ function mergeVertices(pos, tolerance = 1e-3) {
   return { positions: new Float32Array(newPositions), indices };
 }
 
+/* ---------------- cap the base hole ----------------
+   clipBelowY leaves a small hole where the spinal stub was cut off — a
+   single closed loop of boundary edges at the back of the base. It's never
+   in frame across the whole choreography (checked against every camera
+   angle, including the finale's spin) but only by ~8° of margin at the
+   tightest moment, and DoubleSide used to be what actually hid it. Now that
+   tissueMat is FrontSide (see acts/hero.js), the hole must be closed for
+   real — a triangle fan from the loop's centroid, plus it makes the mesh
+   watertight, which matters for the simplifier's border handling below.
+
+   General on purpose (any number of loops, including zero): finds every
+   directed boundary edge — one that has no matching reverse edge anywhere in
+   the mesh — and chains them head-to-tail into closed loops. A boundary
+   triangle's own winding, carried through the chain, is what keeps the cap's
+   winding (and therefore its outward normal) consistent with the rest of the
+   mesh: capping each consecutive pair (loop[i], loop[i+1]) as
+   (centroid, loop[i], loop[i+1]) is a cyclic permutation of the same
+   orientation the adjacent real triangles already have. */
+function capHoles(positions, indices) {
+  const edgeSeen = new Set();
+  const triCount = indices.length / 3;
+  for (let t = 0; t < triCount; t++) {
+    const a = indices[t * 3],
+      b = indices[t * 3 + 1],
+      c = indices[t * 3 + 2];
+    edgeSeen.add(`${a},${b}`);
+    edgeSeen.add(`${b},${c}`);
+    edgeSeen.add(`${c},${a}`);
+  }
+
+  const nextOf = new Map();
+  for (const key of edgeSeen) {
+    const [u, v] = key.split(",").map(Number);
+    if (!edgeSeen.has(`${v},${u}`)) nextOf.set(u, v);
+  }
+
+  const loops = [];
+  const visited = new Set();
+  for (const start of nextOf.keys()) {
+    if (visited.has(start)) continue;
+    const loop = [];
+    let cur = start;
+    while (cur !== undefined && !visited.has(cur)) {
+      visited.add(cur);
+      loop.push(cur);
+      cur = nextOf.get(cur);
+    }
+    if (cur === start && loop.length >= 3) loops.push(loop);
+  }
+
+  if (!loops.length) return { positions, indices };
+
+  const vertexCount = positions.length / 3;
+  const extraPositions = [];
+  const extraIndices = [];
+  let nextVertex = vertexCount;
+
+  for (const loop of loops) {
+    let cx = 0,
+      cy = 0,
+      cz = 0;
+    for (const v of loop) {
+      cx += positions[v * 3];
+      cy += positions[v * 3 + 1];
+      cz += positions[v * 3 + 2];
+    }
+    const centroidIdx = nextVertex++;
+    extraPositions.push(cx / loop.length, cy / loop.length, cz / loop.length);
+    for (let i = 0; i < loop.length; i++) {
+      extraIndices.push(centroidIdx, loop[i], loop[(i + 1) % loop.length]);
+    }
+  }
+
+  const newPositions = new Float32Array(positions.length + extraPositions.length);
+  newPositions.set(positions);
+  newPositions.set(extraPositions, positions.length);
+
+  const newIndices = new Uint32Array(indices.length + extraIndices.length);
+  newIndices.set(indices);
+  newIndices.set(extraIndices, indices.length);
+
+  console.log(
+    `hole cap       ${loops.length} loop(s), ${extraIndices.length / 3} triangle(s) added`,
+  );
+  return { positions: newPositions, indices: newIndices };
+}
+
 /* ---------------- Taubin smoothing ----------------
    Alternating shrink/inflate passes relax the marching-cubes faceting without
    the shrinkage plain Laplacian smoothing causes. */
@@ -140,7 +241,9 @@ function taubinSmooth(positions, indices, iterations = 14, lambda = 0.5, mu = -0
 
 /* ---------------- normals ----------------
    Area-weighted face normals accumulated per vertex, exactly as
-   BufferGeometry.computeVertexNormals does (cb = (C-B) x (A-B), unnormalised). */
+   BufferGeometry.computeVertexNormals does (cb = (C-B) x (A-B), unnormalised).
+   Reused after decimation too — a decimated mesh's normals are recomputed
+   from its own (simplified) topology, never carried over from the source. */
 function computeVertexNormals(positions, indices) {
   const normals = new Float32Array(positions.length);
   for (let i = 0; i < indices.length; i += 3) {
@@ -199,12 +302,112 @@ function centerAndScale(positions, targetRadius = 1.55) {
   return scale;
 }
 
+/* ---------------- decimation + cache-friendly vertex order ----------------
+   Both meshoptimizer operations used here (simplify's compactMesh, and the
+   encoder's reorderMesh) follow the same contract: they mutate the index
+   buffer passed in, in place, and return [remap, uniqueVertexCount], where
+   remap[oldVertexIndex] = newVertexIndex (or the sentinel below if that
+   vertex is no longer referenced). remapBuffer() applies that same remap to
+   whichever position/normal buffer needs to follow along. */
+const MESHOPT_MISSING = 2 ** 32 - 1;
+
+function remapBuffer(data, comps, remap, uniqueCount) {
+  const vertexCount = data.length / comps;
+  const out = new Float32Array(uniqueCount * comps);
+  for (let i = 0; i < vertexCount; i++) {
+    const newIdx = remap[i];
+    if (newIdx === MESHOPT_MISSING) continue;
+    for (let c = 0; c < comps; c++) out[newIdx * comps + c] = data[i * comps + c];
+  }
+  return out;
+}
+
+/** Collapses the mesh toward targetTriCount (meshoptimizer's simplify,
+ *  topology-aware, borders locked so the capped hole's rim doesn't get
+ *  chewed into), compacts the now-sparse vertex buffer, and recomputes
+ *  normals from the decimated topology — never reuses the source normals. */
+async function decimate(positions, indices, targetTriCount) {
+  await MeshoptSimplifier.ready;
+
+  const targetIndexCount = targetTriCount * 3;
+  const [simplified, error] = MeshoptSimplifier.simplify(
+    indices,
+    positions,
+    3,
+    targetIndexCount,
+    0.02,
+    ["LockBorder"],
+  );
+  console.log(
+    `simplify       target ${targetTriCount} tris, got ${simplified.length / 3} tris, error ${error.toFixed(4)}`,
+  );
+
+  const [remap, uniqueCount] = MeshoptSimplifier.compactMesh(simplified);
+  const compactPositions = remapBuffer(positions, 3, remap, uniqueCount);
+  const compactNormals = computeVertexNormals(compactPositions, simplified);
+
+  return { positions: compactPositions, normals: compactNormals, indices: simplified };
+}
+
+/** Reorders vertices for GPU vertex-cache/fetch locality — grátis at
+ *  runtime, applied to both variants (not just the decimated one).
+ *
+ *  MeshoptEncoder.reorderMesh() mutates its index-buffer argument IN PLACE
+ *  (renumbers it to the new vertex order) — confirmed against the package's
+ *  own test suite. Operating on a copy is what stops the full-detail
+ *  variant's reorder from corrupting `cappedIndices` for whoever reads it
+ *  next: with the caller's array mutated instead, the low-poly variant's own
+ *  MeshoptSimplifier.simplify() call downstream would receive indices
+ *  already renumbered for the FULL mesh's vertex order while `positions`
+ *  stayed in the original order — every index would point at the wrong
+ *  vertex, and the result renders as scrambled, faceted noise (this is
+ *  exactly what happened before this fix: normals disagreed with their own
+ *  triangle's geometric face normal ~38% of the time instead of the ~2-10%
+ *  a decimated mesh should show). */
+async function reorderForCache(positions, normals, indices) {
+  await MeshoptEncoder.ready;
+  const workingIndices = indices.slice();
+  const [remap, uniqueCount] = MeshoptEncoder.reorderMesh(workingIndices, true, true);
+  return {
+    positions: remapBuffer(positions, 3, remap, uniqueCount),
+    normals: remapBuffer(normals, 3, remap, uniqueCount),
+    indices: workingIndices,
+  };
+}
+
 /* ---------------- GLB writer ---------------- */
 function pad4(n) {
   return (4 - (n % 4)) % 4;
 }
 
+/** Quantizes unit normals to signed 16-bit ints, padded to 4 components (8
+ *  bytes/vertex) — glTF's KHR_mesh_quantization allows NORMAL as a
+ *  normalized SHORT accessor, and three r160's GLTFLoader supports it. Only
+ *  the normals are quantized: POSITION stays float32, since quantizing it
+ *  would need a per-node `scale` to undo, and hero.js's GLTFLoader callback
+ *  only reads `mesh.geometry` off the loaded scene — it drops node
+ *  transforms silently, so a quantized-position mesh would load 32767x too
+ *  large with no error. The saving there (~150KB) isn't worth that risk. */
+function quantizeNormals(normals) {
+  const count = normals.length / 3;
+  const out = new Int16Array(count * 4);
+  for (let i = 0; i < count; i++) {
+    out[i * 4] = Math.max(-32767, Math.min(32767, Math.round(normals[i * 3] * 32767)));
+    out[i * 4 + 1] = Math.max(-32767, Math.min(32767, Math.round(normals[i * 3 + 1] * 32767)));
+    out[i * 4 + 2] = Math.max(-32767, Math.min(32767, Math.round(normals[i * 3 + 2] * 32767)));
+    out[i * 4 + 3] = 0; // padding to 8 bytes; the VEC3 accessor never reads it
+  }
+  return out;
+}
+
 function writeGLB(positions, normals, indices) {
+  const vertexCount = positions.length / 3;
+  if (vertexCount >= 65536) {
+    throw new Error(
+      `vertexCount ${vertexCount} excede o limite de indices uint16 (65535) — reveja o alvo de decimação ou volte para uint32`,
+    );
+  }
+
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < positions.length; i += 3) {
@@ -215,18 +418,28 @@ function writeGLB(positions, normals, indices) {
   }
 
   const posBuf = Buffer.from(positions.buffer, positions.byteOffset, positions.byteLength);
-  const nrmBuf = Buffer.from(normals.buffer, normals.byteOffset, normals.byteLength);
-  const idxBuf = Buffer.from(indices.buffer, indices.byteOffset, indices.byteLength);
+
+  const quantizedNormals = quantizeNormals(normals);
+  const nrmBuf = Buffer.from(
+    quantizedNormals.buffer,
+    quantizedNormals.byteOffset,
+    quantizedNormals.byteLength,
+  );
+
+  const indices16 = Uint16Array.from(indices);
+  const idxBuf = Buffer.from(indices16.buffer, indices16.byteOffset, indices16.byteLength);
 
   const parts = [];
   let offset = 0;
   const views = [];
-  for (const [buf, target] of [
-    [posBuf, 34962],
-    [nrmBuf, 34962],
-    [idxBuf, 34963],
+  for (const [buf, target, byteStride] of [
+    [posBuf, 34962, undefined],
+    [nrmBuf, 34962, 8],
+    [idxBuf, 34963, undefined],
   ]) {
-    views.push({ buffer: 0, byteOffset: offset, byteLength: buf.length, target });
+    const view = { buffer: 0, byteOffset: offset, byteLength: buf.length, target };
+    if (byteStride) view.byteStride = byteStride;
+    views.push(view);
     parts.push(buf);
     offset += buf.length;
     const p = pad4(offset);
@@ -239,6 +452,8 @@ function writeGLB(positions, normals, indices) {
 
   const gltf = {
     asset: { version: "2.0", generator: "bake-brain.mjs" },
+    extensionsUsed: ["KHR_mesh_quantization"],
+    extensionsRequired: ["KHR_mesh_quantization"],
     scene: 0,
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0, name: "brain" }],
@@ -253,7 +468,7 @@ function writeGLB(positions, normals, indices) {
     accessors: [
       {
         bufferView: 0,
-        componentType: 5126,
+        componentType: 5126, // FLOAT
         count: positions.length / 3,
         type: "VEC3",
         min,
@@ -261,14 +476,15 @@ function writeGLB(positions, normals, indices) {
       },
       {
         bufferView: 1,
-        componentType: 5126,
+        componentType: 5122, // SHORT
+        normalized: true,
         count: normals.length / 3,
         type: "VEC3",
       },
       {
         bufferView: 2,
-        componentType: 5125,
-        count: indices.length,
+        componentType: 5123, // UNSIGNED_SHORT
+        count: indices16.length,
         type: "SCALAR",
       },
     ],
@@ -309,16 +525,31 @@ applyOrientation(raw);
 const clipped = clipBelowY(raw, 79);
 console.log(`after clip     ${clipped.length / 9} triangles`);
 
-const { positions: welded, indices } = mergeVertices(clipped, 1e-3);
+const { positions: welded, indices: weldedIndices } = mergeVertices(clipped, 1e-3);
 console.log(`welded         ${welded.length / 3} vertices`);
 
-const smoothed = taubinSmooth(welded, indices);
+const { positions: capped, indices: cappedIndices } = capHoles(welded, weldedIndices);
+
+const smoothed = taubinSmooth(capped, cappedIndices);
 const scale = centerAndScale(smoothed);
 console.log(`scale factor   ${scale.toFixed(6)}`);
 
-const normals = computeVertexNormals(smoothed, indices);
-const glb = writeGLB(smoothed, normals, indices);
-writeFileSync(OUT, glb);
+// ---- full-detail variant ----
+const fullNormals = computeVertexNormals(smoothed, cappedIndices);
+const fullReordered = await reorderForCache(smoothed, fullNormals, cappedIndices);
+const fullGlb = writeGLB(fullReordered.positions, fullReordered.normals, fullReordered.indices);
+writeFileSync(OUT_FULL, fullGlb);
+console.log(
+  `${OUT_FULL.replace(root + "\\", "").replace(root + "/", "")}   ${(fullGlb.length / 1e6).toFixed(2)} MB, ${fullReordered.indices.length / 3} tris`,
+);
 
-console.log(`glb            ${(glb.length / 1e6).toFixed(2)} MB`);
+// ---- decimated variant (coarse-pointer devices) ----
+const low = await decimate(smoothed, cappedIndices, LOW_POLY_TARGET_TRIS);
+const lowReordered = await reorderForCache(low.positions, low.normals, low.indices);
+const lowGlb = writeGLB(lowReordered.positions, lowReordered.normals, lowReordered.indices);
+writeFileSync(OUT_LOW, lowGlb);
+console.log(
+  `${OUT_LOW.replace(root + "\\", "").replace(root + "/", "")}   ${(lowGlb.length / 1e6).toFixed(2)} MB, ${lowReordered.indices.length / 3} tris`,
+);
+
 console.log(`done in        ${Date.now() - t0} ms`);

@@ -10,7 +10,14 @@
    =========================================================== */
 
 import * as THREE from "three";
-import { camera, scene, registerAct, unregisterAct, PAGE_BG } from "../stage.js";
+import {
+  camera,
+  scene,
+  registerAct,
+  unregisterAct,
+  renderer,
+  PAGE_BG,
+} from "../stage.js";
 import { clamp01, damp, lerp, deg } from "../../lib/motion.js";
 import { brainGeometryReady, synapseMat, tissueMat } from "./hero.js";
 
@@ -30,6 +37,11 @@ let glow = null;
 export function initFinale() {
   const section = document.getElementById("contato");
   if (!section) return () => {};
+  // The hero's own brain is already the reduced-motion path's one 3D moment
+  // (see acts/hero.js's updateStatic()) — this echo of it doesn't exist here
+  // at all: no geometry chain attached, no act registered, nothing added to
+  // finaleGroup or the scene.
+  if (reduceMotion) return () => {};
 
   brainGeometryReady
     ?.then((geometry) => {
@@ -64,6 +76,15 @@ export function initFinale() {
       glow = new THREE.Mesh(geometry, synapseMat.clone());
       glow.scale.setScalar(1.006);
       finaleGroup.add(glow);
+
+      // darkMat and the cloned synapse material are new programs the hero's
+      // own warm-up (three/stage.js) never compiled. By the time a visitor
+      // scrolls this far the stage is long since visible, so this isn't
+      // gating anything — just gets the compile out of the way before the
+      // section is actually near instead of on its first real frame.
+      if (typeof renderer.compileAsync === "function") {
+        renderer.compileAsync(scene, camera).catch(() => {});
+      }
     })
     .catch(() => {
       /* the hero already reported the load failure */
@@ -84,8 +105,11 @@ export function initFinale() {
     // gradual instead of arriving already at full brightness.
     nearMargin: 0.45,
     update(t, dt) {
-      // how centred the section is in the viewport, 0..1
-      const rect = section.getBoundingClientRect();
+      // how centred the section is in the viewport, 0..1 — act.rect comes
+      // from the shared director's single getBoundingClientRect() per act
+      // per frame (three/stage.js), instead of a second read of the same
+      // element here.
+      const rect = act.rect;
       const vh = window.innerHeight;
       const centred = clamp01(
         1 - Math.abs(rect.top + rect.height / 2 - vh / 2) / vh,
@@ -107,7 +131,9 @@ export function initFinale() {
 
       if (!act.wantsRender) return;
 
-      if (!reduceMotion) spin += dt * 0.06;
+      // reduceMotion is always false by the time update() ever runs — see
+      // the early return above — so this always advances.
+      spin += dt * 0.06;
       finaleGroup.rotation.y = spin;
       finaleGroup.rotation.x = deg(22);
       finaleGroup.rotation.z = deg(-5);

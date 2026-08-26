@@ -28,12 +28,6 @@
     display: none;
   }
 
-  /* only the intro page is meaningful without the pinned sequence */
-  #brainPage1,
-  #brainPage2 {
-    display: none;
-  }
-
   .brain-page .brain-eyebrow,
   .brain-page .brain-title,
   .brain-page .brain-page-title,
@@ -46,29 +40,33 @@
     transform: none !important;
   }
 
-  /* The gallery's horizontal travel is driven by a pin that never gets
-     created here, so without this the track would sit frozen at x=0 with
-     every card past the third clipped away. Same vertical stack the narrow
-     breakpoint falls back to. */
+  /* The gallery's horizontal travel is driven by a scroll-jacked pin that
+     never gets created here — same reasoning the narrow breakpoint's own
+     fallback already uses (Work.css), reused verbatim rather than the
+     vertical grid this used to fall back to: cards keep the exact same size
+     and single-row layout the normal version shows, just scrolled/swiped
+     natively instead of driven by vertical scroll. */
   .work__pin {
     height: auto;
     display: block;
     overflow: visible;
     padding: clamp(4rem, 10vh, 6rem) 0;
   }
-  /* a grid rather than the narrow breakpoint's single column: this path also
-     runs on wide desktops, where one card per row would blow the artwork up
-     to full-bleed */
   .work__track {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-    max-width: var(--maxw);
-    margin: 0 auto;
     transform: none !important;
-    gap: var(--sp-6);
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x proximity;
+    scroll-padding-left: var(--gutter);
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: var(--sp-2);
+    scrollbar-width: none;
+  }
+  .work__track::-webkit-scrollbar {
+    display: none;
   }
   .proj {
-    width: auto;
+    scroll-snap-align: start;
     transform: none !important;
     opacity: 1 !important;
   }

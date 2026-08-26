@@ -39,7 +39,7 @@ export default function Stage() {
       <div className="brain-vignette" id="brainVignette" aria-hidden="true" />
       <div className="brain-fade-bottom" id="brainFadeBottom" aria-hidden="true" />
       <div className="brain-exit-fade" id="brainExitFade" aria-hidden="true" />
-      <div className="grain" aria-hidden="true" />
+      <div className="grain" id="grain" aria-hidden="true" />
     </>
   );
 }

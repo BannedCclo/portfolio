@@ -53,6 +53,11 @@ img {
   inset: 0;
   z-index: var(--z-stage);
   pointer-events: none;
+  /* Starts hidden: stage.js holds it here (canvasShown starts false) until
+     warmUpStage() has compiled the brain's shaders and rendered one
+     throwaway frame, so the first real frame the visitor sees isn't the one
+     that also pays for shader compilation and geometry upload. */
+  opacity: 0;
   /* stage.js toggles this opacity as a hard 0/1 flag (skip-render optimisation
      for whichever act is near) — this transition is what turns an appearance
      into a fade instead of a pop (e.g. the finale's brain surfacing behind

@@ -326,3 +326,36 @@
   background: var(--bg);
   opacity: 0;
 }
+
+/* ---------- reduced motion ----------
+   #brain stays the exact same 100svh frame it always is — no pin, but no
+   flow layout either. The title card and page0 are both shown at once
+   instead of one fading out as the other fades in — page0 keeps its normal
+   bottom anchor, but the title card can no longer sit centred (its default,
+   .brain-title-screen above) without colliding with page0's own title/sub/
+   CTA rising from the bottom, so it moves up here. Its background glow is
+   painted "at" a fixed point within the same box, not pinned to the text by
+   layout, so it has to be re-centred by hand alongside the text or the two
+   drift apart. Pages one and two don't exist in this path —
+   acts/hero.js's updateStatic() never stages them. Co-located here rather
+   than in styles/reduced-motion.css: that file is only guaranteed to load
+   last by how Vite happens to order chunks today, not by any explicit
+   ordering guarantee, and this needs to win over the rules above in this
+   same file. */
+@media (prefers-reduced-motion: reduce) {
+  .brain-title-screen {
+    justify-content: flex-start;
+    padding-top: 14vh;
+    background: radial-gradient(
+      ellipse 60% 38% at 50% 24%,
+      rgba(10, 10, 13, 0.6) 0%,
+      rgba(10, 10, 13, 0.25) 55%,
+      rgba(10, 10, 13, 0) 85%
+    );
+  }
+
+  #brainPage1,
+  #brainPage2 {
+    display: none;
+  }
+}

@@ -98,9 +98,16 @@ export function sectionProgress(el) {
   return clamp01((vh - rect.top) / (vh + rect.height));
 }
 
-/** Whether an element is within `margin` viewports of the screen. */
-export function isNear(el, margin = 1.5) {
-  const rect = el.getBoundingClientRect();
+/** Whether a bounding rect is within `margin` viewports of the screen. Split
+ *  out from isNear() below so a caller that already has the rect this frame
+ *  (the 3D act director in three/stage.js) doesn't force a second layout
+ *  read for the same element. */
+export function isNearRect(rect, margin = 1.5) {
   const vh = window.innerHeight;
   return rect.bottom > -vh * margin && rect.top < vh * (1 + margin);
+}
+
+/** Whether an element is within `margin` viewports of the screen. */
+export function isNear(el, margin = 1.5) {
+  return isNearRect(el.getBoundingClientRect(), margin);
 }
