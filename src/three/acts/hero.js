@@ -85,15 +85,24 @@ const FOG_NEAR_REST = 8;
 
 export const brainGroup = new THREE.Group();
 
+// clearcoat/sheen add USE_CLEARCOAT/USE_SHEEN branches to the compiled
+// fragment shader — real instructions, not just a runtime multiply-by-zero —
+// and this material covers most of the screen for most of the hero's scroll
+// range. finale.js already proves they're droppable without harm (it zeroes
+// both for its own dim echo of this same mesh); on tier "low" the fps cost
+// showed up even with mesh/dpr/bloom already at their floor (see stage.js's
+// quality tiers), so it's cut at the source here rather than left for the
+// watchdog to chase.
+const isLowTier = quality.tier === "low";
 export const tissueMat = new THREE.MeshPhysicalMaterial({
   color: 0xc9bcae,
   roughness: 0.72,
   metalness: 0,
-  clearcoat: 0.08,
+  clearcoat: isLowTier ? 0 : 0.08,
   clearcoatRoughness: 0.55,
-  sheen: 0.15,
+  sheen: isLowTier ? 0 : 0.15,
   sheenColor: new THREE.Color(0xc97c4b),
-  envMapIntensity: 0.55,
+  envMapIntensity: isLowTier ? 0.35 : 0.55,
   // The bake clips the mesh below y=79 (see tools/bake-brain.mjs), leaving a
   // small closed hole at the back of the base. DoubleSide used to paper over
   // that; it's a well-hidden, one-loop hole (verified against the whole

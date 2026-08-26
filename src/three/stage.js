@@ -51,12 +51,26 @@ function detectQuality() {
   const coarse = window.matchMedia("(pointer: coarse)").matches;
   const mem = navigator.deviceMemory ?? (coarse ? 4 : 8);
   const small = window.innerWidth < 820;
-  const tier =
-    mem <= 4 || (coarse && small) ? "low" : mem <= 8 || coarse ? "mid" : "high";
+  // navigator.deviceMemory is capped at 8 by spec (anti-fingerprinting) — it
+  // never reports higher, and the unsupported-browser fallback above also
+  // lands exactly on 8. A `mem <= 8` check for the "high" cutoff is therefore
+  // never false: no desktop, however capable, could ever clear it, which
+  // silently collapsed every non-coarse device into "mid" (fog approximation
+  // instead of real CSS blur, 9 flashes instead of 12). `mem` stays useful
+  // for catching a genuinely constrained *coarse* (phone/tablet) device, but
+  // it can't distinguish tiers on non-coarse hardware — there, pointer type
+  // alone decides high vs mid.
+  const tier = mem <= 4 || (coarse && small) ? "low" : coarse ? "mid" : "high";
   return {
     tier,
     bloom: tier !== "low",
-    maxDpr: tier === "low" ? 1.25 : 1.5,
+    // Low tier starts at native-resolution-1 rather than 1.25 — a phone weak
+    // enough to land in this bucket can't afford to wait for the watchdog
+    // (which needs a warm-up window plus a full sample window before its
+    // first degrade) to claw back the ~36% fewer fragments this buys
+    // immediately. See applyStageDegradation()'s comment for the rest of the
+    // ladder this feeds into.
+    maxDpr: tier === "low" ? 1 : 1.5,
     flashes: tier === "low" ? 6 : tier === "mid" ? 9 : 12,
     mesh: coarse ? "low" : "full",
   };
@@ -81,19 +95,23 @@ function degradeQuality() {
   markDirty();
 }
 
+// Ordered so every degrade step actually costs something back — it used to
+// start checking at level >= 2, leaving the watchdog's first step (level 0
+// -> 1) a no-op that bought nothing while a struggling phone kept dropping
+// frames for a whole extra cooldown window before the next check.
 function applyStageDegradation() {
-  if (quality.level >= 3) {
+  if (quality.level >= 1) {
+    document.getElementById("grain")?.style.setProperty("display", "none");
+  }
+  if (quality.level >= 2) {
     const dpr = 1;
     if (renderer.getPixelRatio() !== dpr) {
       renderer.setPixelRatio(dpr);
       composer.setPixelRatio(dpr);
     }
   }
-  if (quality.level >= 4 && bloomPass) {
+  if (quality.level >= 3 && bloomPass) {
     bloomPass.enabled = false;
-  }
-  if (quality.level >= 2) {
-    document.getElementById("grain")?.style.setProperty("display", "none");
   }
 }
 
