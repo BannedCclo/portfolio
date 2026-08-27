@@ -1,0 +1,65 @@
+/* ===========================================================
+   loading screen
+
+   Masks the few seconds the brain's model (a multi-MB GLTF, see
+   three/acts/hero.js) takes to fetch and warm up behind a solid screen,
+   instead of leaving the hero visibly incomplete while it arrives. Fades out
+   the same way #stage itself fades in — same duration/easing (see base.css)
+   — so the handoff reads as one continuous reveal rather than a cut.
+   =========================================================== */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-loading);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-5);
+  background: var(--bg);
+  transition: opacity var(--dur-slow) var(--ease-out-expo);
+}
+/* pointer-events drops the instant .is-ready is added, not once the fade
+   finishes — a slow fade would otherwise keep the nav/hero underneath
+   unclickable for the whole transition. */
+.loading-screen.is-ready {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-screen__mark {
+  display: block;
+  height: 36px;
+  width: auto;
+}
+
+.loading-screen__label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-1);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.loading-screen__bar {
+  width: 120px;
+  height: 1px;
+  background: var(--hairline);
+  overflow: hidden;
+  position: relative;
+}
+.loading-screen__bar i {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: var(--copper);
+  animation: loadingSweep 1.3s ease-in-out infinite;
+}
+@keyframes loadingSweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}

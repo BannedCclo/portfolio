@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { initFinale } from "../three/acts/finale.js";
+import { useLanguage } from "../lib/i18n/LanguageContext.jsx";
 import "./Contact.css";
 
 const EMPTY_FORM = {
@@ -33,6 +34,8 @@ function formatPhoneBR(raw) {
 
 export default function Contact() {
   useEffect(() => initFinale(), []);
+  const { s } = useLanguage();
+  const { contact } = s;
 
   const [form, setForm] = useState(EMPTY_FORM);
   // idle | sending | success | error
@@ -72,37 +75,35 @@ export default function Contact() {
         // sobe o Vite e não serve api/contact.js) em vez de um erro vindo
         // de verdade do formulário.
         throw new Error(
-          import.meta.env.DEV
-            ? "O formulário só envia de verdade no site publicado (ou rodando `vercel dev` localmente) — `npm run dev` sozinho não serve a API."
-            : "O servidor respondeu de um jeito inesperado. Tente novamente em instantes.",
+          import.meta.env.DEV ? contact.errorDev : contact.errorProd,
         );
       }
 
       if (!res.ok) {
-        throw new Error(data.error || "Não foi possível enviar sua mensagem agora.");
+        throw new Error(data.error || contact.errorFallback);
       }
 
       setStatus("success");
       setForm(EMPTY_FORM);
     } catch (err) {
       setStatus("error");
-      setErrorMessage(err.message || "Não foi possível enviar sua mensagem agora.");
+      setErrorMessage(err.message || contact.errorFallback);
     }
   };
 
   return (
     <section id="contato" className="contact layer">
-      <p className="contact__eyebrow">Contato</p>
+      <p className="contact__eyebrow">{contact.eyebrow}</p>
       <h2 className="contact__title">
-        Vamos trabalhar
+        {contact.titleLine1}
         <br />
-        juntos?
+        {contact.titleLine2}
       </h2>
 
       <form className="contact__form" onSubmit={handleSubmit}>
         <div className="contact__row">
           <div className="contact__field">
-            <label htmlFor="firstName">Nome</label>
+            <label htmlFor="firstName">{contact.firstName}</label>
             <input
               id="firstName"
               name="firstName"
@@ -115,7 +116,7 @@ export default function Contact() {
             />
           </div>
           <div className="contact__field">
-            <label htmlFor="lastName">Sobrenome</label>
+            <label htmlFor="lastName">{contact.lastName}</label>
             <input
               id="lastName"
               name="lastName"
@@ -131,7 +132,7 @@ export default function Contact() {
 
         <div className="contact__row">
           <div className="contact__field">
-            <label htmlFor="phone">Telefone</label>
+            <label htmlFor="phone">{contact.phone}</label>
             <input
               id="phone"
               name="phone"
@@ -146,7 +147,7 @@ export default function Contact() {
             />
           </div>
           <div className="contact__field">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{contact.email}</label>
             <input
               id="email"
               name="email"
@@ -161,7 +162,7 @@ export default function Contact() {
         </div>
 
         <div className="contact__field contact__field--full">
-          <label htmlFor="message">Mensagem</label>
+          <label htmlFor="message">{contact.message}</label>
           <textarea
             id="message"
             name="message"
@@ -187,17 +188,17 @@ export default function Contact() {
 
         <div className="contact__form-footer">
           <button className="contact__submit" type="submit" disabled={status === "sending"}>
-            {status === "sending" ? "Enviando…" : "Enviar mensagem"}
+            {status === "sending" ? contact.submitting : contact.submit}
           </button>
 
           {status === "success" && (
             <p className="contact__status contact__status--ok" role="status">
-              Mensagem enviada — retorno em breve.
+              {contact.success}
             </p>
           )}
           {status === "error" && (
             <p className="contact__status contact__status--error" role="alert">
-              {errorMessage} Ou escreva direto:{" "}
+              {errorMessage} {contact.errorSuffix}{" "}
               <a href="mailto:marcelosg909@gmail.com">marcelosg909@gmail.com</a>
             </p>
           )}

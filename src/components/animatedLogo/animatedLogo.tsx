@@ -13,21 +13,25 @@ import styles from "./animatedLogo.module.css";
  * for reexportado.
  */
 import horizontalDark from "../../assets/logo/dark/horizontal.svg?raw";
+import horizontalDarkEn from "../../assets/logo/dark/horizontal-en.svg?raw";
 
 /*
  * Só a variante que este site usa. O footer fica sobre --bg (quase preto), daí
  * `dark/` — que na convenção do asset é a cor do *traço*, não do fundo. Para
  * usar outra, copie o SVG de Assets/Logo/ para src/assets/logo/ e acrescente a
  * entrada aqui; o resto do componente não sabe qual variante está animando.
+ * `en` existe porque o cargo ("Engenheiro de Software") muda com o idioma do
+ * site — o nome não muda, então não há versão `-en` do `icon` sozinho.
  */
 const MARKUP = {
   dark: {
-    horizontal: horizontalDark,
+    horizontal: { pt: horizontalDark, en: horizontalDarkEn },
   },
 };
 
 export type LogoVariant = keyof typeof MARKUP;
 export type LogoShape = keyof (typeof MARKUP)["dark"];
+export type LogoLang = keyof (typeof MARKUP)["dark"]["horizontal"];
 
 // Laranja do cursor. É a única cor fora do traço principal, e é por ela que o
 // cursor é reconhecido dentro do SVG.
@@ -184,6 +188,8 @@ function classify(svg: SVGSVGElement) {
 type AnimatedLogoProps = {
   shape?: LogoShape;
   variant?: LogoVariant;
+  /** Idioma do cargo exibido — "pt" (Engenheiro de Software) ou "en" (Software Engineer). */
+  lang?: LogoLang;
   /** Texto alternativo do logo. */
   label?: string;
 };
@@ -191,10 +197,11 @@ type AnimatedLogoProps = {
 function AnimatedLogo({
   shape = "horizontal",
   variant = "dark",
+  lang = "pt",
   label = "Marcelo Guimarães",
 }: AnimatedLogoProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const markup = MARKUP[variant][shape];
+  const markup = MARKUP[variant][shape][lang];
 
   // Antes da pintura: sem as classes e variáveis o logo apareceria montado por
   // um frame.

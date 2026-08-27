@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { initWork } from "../lib/sections/work.js";
 import { PROJECTS } from "../lib/projects.js";
+import { useLanguage } from "../lib/i18n/LanguageContext.jsx";
 import ProjectArt from "../components/ProjectArt.jsx";
 import "./Work.css";
 
@@ -22,15 +23,16 @@ const GithubIcon = () => (
 
 export default function Work() {
   useEffect(() => initWork(), []);
+  const { lang, s } = useLanguage();
 
   return (
     <section id="trabalho" className="work layer">
       <div className="work__pin">
         <header className="work__head fade-in">
           <span className="block__label" data-index="02">
-            Experiência
+            {s.work.label}
           </span>
-          <h2 className="work__title">Alguns projetos dos quais participei.</h2>
+          <h2 className="work__title">{s.work.title}</h2>
         </header>
 
         <div className="work__track">
@@ -48,7 +50,7 @@ export default function Work() {
                     href={p.github}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`Ver código de ${p.name} no GitHub`}
+                    aria-label={s.work.githubAria(p.name[lang])}
                   >
                     <GithubIcon />
                   </a>
@@ -66,17 +68,17 @@ export default function Work() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {p.name}
+                    {p.name[lang]}
                   </a>
                 </h3>
-                <p className="proj__outcome">{p.outcome}</p>
+                <p className="proj__outcome">{p.outcome[lang]}</p>
                 <div className="proj__stack">
-                  {p.stack.map((s) => (
-                    <span key={s}>{s}</span>
+                  {p.stack[lang].map((tag) => (
+                    <span key={tag}>{tag}</span>
                   ))}
                 </div>
                 <span className="proj__more" aria-hidden="true">
-                  Ver projeto
+                  {s.work.viewProject}
                   <ArrowIcon />
                 </span>
               </div>
@@ -86,6 +88,7 @@ export default function Work() {
 
         <div className="work__rail" aria-hidden="true">
           <i />
+          <b className="work__thumb" />
         </div>
       </div>
     </section>

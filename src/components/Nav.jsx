@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { gsap } from "../lib/gsap.js";
+import { useLanguage } from "../lib/i18n/LanguageContext.jsx";
+import LanguageSwitcher from "./LanguageSwitcher.jsx";
 import logoIcon from "../assets/logo/dark/icon-bold.svg";
 
 /* CSS scroll-behavior is deliberately off (see styles/base.css): it fights
@@ -10,20 +12,23 @@ const reduceMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 ).matches;
 
-const NAV_LINKS = [
-  { href: "#sobre", label: "Sobre" },
-  { href: "#trabalho", label: "Experiência" },
-  { href: "#stack", label: "Ferramentas" },
-  { href: "#manifesto", label: "Metas" },
-  { href: "#contato", label: "Contato" },
+// hrefs are DOM ids, stable across languages — only the label shown for
+// each one comes from the current dictionary (see s.nav below)
+const NAV_ITEMS = [
+  { href: "#sobre", key: "sobre" },
+  { href: "#trabalho", key: "trabalho" },
+  { href: "#stack", key: "stack" },
+  { href: "#manifesto", key: "manifesto" },
+  { href: "#contato", key: "contato" },
 ];
 
 export default function Nav() {
   const [current, setCurrent] = useState(null);
+  const { s } = useLanguage();
 
   // current-section highlighting
   useEffect(() => {
-    const targets = NAV_LINKS.map((l) => ({
+    const targets = NAV_ITEMS.map((l) => ({
       ...l,
       el: document.querySelector(l.href),
     })).filter((t) => t.el);
@@ -64,17 +69,18 @@ export default function Nav() {
         <img src={logoIcon} alt="Marcelo Guimarães" width="200" height="200" />
       </a>
       <div className="nav__links">
-        {NAV_LINKS.map((l) => (
+        {NAV_ITEMS.map((l) => (
           <a
             key={l.href}
             href={l.href}
             aria-current={current === l.href ? "true" : undefined}
             onClick={(e) => handleClick(e, l.href)}
           >
-            {l.label}
+            {s.nav[l.key]}
           </a>
         ))}
       </div>
+      <LanguageSwitcher />
     </nav>
   );
 }

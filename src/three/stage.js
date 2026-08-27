@@ -284,8 +284,19 @@ export function initStage(mountEl) {
    try/finally: whatever happens (unsupported browser, load failure), the
    canvas must still be revealed. */
 let stageReady = false;
+const readyListeners = [];
 export function markStageReady() {
+  if (stageReady) return;
   stageReady = true;
+  for (const cb of readyListeners.splice(0)) cb();
+}
+
+/** Subscribes to the stage becoming ready (see markStageReady above) — calls
+ *  back immediately if it already is. <LoadingScreen> uses this to know
+ *  when to dismiss itself instead of guessing at a fixed delay. */
+export function onStageReady(cb) {
+  if (stageReady) cb();
+  else readyListeners.push(cb);
 }
 
 export async function warmUpStage() {

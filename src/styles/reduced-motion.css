@@ -56,8 +56,6 @@
     transform: none !important;
     overflow-x: auto;
     overflow-y: visible;
-    scroll-snap-type: x proximity;
-    scroll-padding-left: var(--gutter);
     -webkit-overflow-scrolling: touch;
     padding-bottom: var(--sp-2);
     scrollbar-width: none;
@@ -65,12 +63,22 @@
   .work__track::-webkit-scrollbar {
     display: none;
   }
+  /* No scroll-snap here (unlike the narrow-viewport fallback in Work.css):
+     this track is also driven by the rail's drag-to-scrub (see
+     initReducedMotionRail() in lib/sections/work.js), which needs to be able
+     to rest at any arbitrary offset, not just a card boundary. Toggling
+     scroll-snap-type off only while dragging doesn't get that — turning it
+     back on at drag-end forces an immediate correction back to whichever
+     card the browser considers nearest, which regularly isn't the card the
+     drag was released on, and the same snap machinery can also make
+     mid-drag scrollLeft assignments fight the pointer instead of tracking
+     it. Free scrolling here avoids both. */
   .proj {
-    scroll-snap-align: start;
     transform: none !important;
     opacity: 1 !important;
   }
-  .work__rail {
-    display: none;
-  }
+  /* The rail and its drag handle still work here — see
+     initReducedMotionRail() in lib/sections/work.js — mirroring and driving
+     the track's native scrollLeft instead of a ScrollTrigger pin. Only the
+     narrow-viewport fallback (Work.css) hides it, same as in normal motion. */
 }

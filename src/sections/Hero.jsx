@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { initHero } from "../three/acts/hero.js";
+import { useLanguage } from "../lib/i18n/LanguageContext.jsx";
 import "./Hero.css";
 
 /**
@@ -11,16 +12,18 @@ import "./Hero.css";
  */
 export default function Hero() {
   useEffect(() => initHero(), []);
+  const { s } = useLanguage();
+  const { hero } = s;
 
   return (
     <section id="brain" className="layer">
       <div className="brain-title-screen" id="brainTitleScreen">
-        <p className="brain-title-screen__eyebrow">Portfólio</p>
+        <p className="brain-title-screen__eyebrow">{hero.eyebrow}</p>
         <h1 className="brain-title-screen__name">Marcelo Guimarães</h1>
       </div>
 
       <div className="brain-hint" id="brainHint">
-        <span>role para revelar</span>
+        <span>{hero.hint}</span>
         <span className="brain-hint__bar" />
       </div>
 
@@ -29,17 +32,18 @@ export default function Hero() {
       </div>
 
       <div className="brain-page" id="brainPage0">
-        <p className="brain-eyebrow">Engenheiro de software — Brasil</p>
+        <p className="brain-eyebrow">{hero.page0.eyebrow}</p>
         <h2 className="brain-title">
-          Produtos digitais onde <em>engenharia</em> e <em>UX</em> andam de mãos dadas.
+          {hero.page0.titleBefore}
+          <em>{hero.page0.em1}</em>
+          {hero.page0.titleMid}
+          <em>{hero.page0.em2}</em>
+          {hero.page0.titleAfter}
         </h2>
         <div className="brain-row">
-          <p className="brain-sub">
-            Construo produtos digitais onde ciência e forma andam juntas —
-            do backend à última curva de uma animação.
-          </p>
+          <p className="brain-sub">{hero.page0.sub}</p>
           <a className="brain-cta" href="#trabalho">
-            Ver trabalho
+            {hero.page0.cta}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path
                 d="M3 3L11 11M11 11V4M11 11H4"
@@ -52,17 +56,13 @@ export default function Hero() {
       </div>
 
       <div className="brain-page" id="brainPage1">
-        <p className="brain-eyebrow">Como eu penso</p>
-        <h2 className="brain-page-title">
-          Estar aberto ao aprendizado é a chave para elevar o nível de qualquer trabalho.
-        </h2>
+        <p className="brain-eyebrow">{hero.page1.eyebrow}</p>
+        <h2 className="brain-page-title">{hero.page1.title}</h2>
       </div>
 
       <div className="brain-page brain-page--right" id="brainPage2">
-        <p className="brain-eyebrow">O que vem a seguir</p>
-        <h2 className="brain-page-title">
-          Nesse portfólio, você verá mais sobre a minha trajetória e o meu perfil.
-        </h2>
+        <p className="brain-eyebrow">{hero.page2.eyebrow}</p>
+        <h2 className="brain-page-title">{hero.page2.title}</h2>
       </div>
     </section>
   );

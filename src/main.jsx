@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
+import { LanguageProvider } from "./lib/i18n/LanguageContext.jsx";
 import { mountDebugPanel } from "./lib/debugPanel.js";
 
 // global design system — loaded once, ahead of every section's own CSS
@@ -18,6 +19,8 @@ mountDebugPanel();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
   </StrictMode>,
 );

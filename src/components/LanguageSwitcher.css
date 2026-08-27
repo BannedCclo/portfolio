@@ -1,0 +1,39 @@
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: var(--sp-6);
+}
+
+.lang-switch__btn {
+  display: block;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  line-height: 0;
+  opacity: 0.45;
+  cursor: pointer;
+  transition:
+    opacity var(--dur-fast) ease,
+    border-color var(--dur-fast) ease;
+}
+
+.lang-switch__btn svg {
+  display: block;
+  border-radius: 2px;
+}
+
+.lang-switch__btn:hover {
+  opacity: 0.75;
+}
+
+.lang-switch__btn[aria-pressed="true"] {
+  opacity: 1;
+  border-color: var(--hairline-strong);
+}
+
+@media (max-width: 720px) {
+  .lang-switch {
+    margin-left: 0;
+  }
+}

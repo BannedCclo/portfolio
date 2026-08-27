@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { PROJECTS } from "../lib/projects.js";
+import { useLanguage } from "../lib/i18n/LanguageContext.jsx";
 import "./RandomProjectButton.css";
 
 // Layout de pontos por face, num sistema de coordenadas 0-100 — o mesmo dado
@@ -54,6 +55,8 @@ export default function RandomProjectButton() {
   const [face, setFace] = useState(1);
   const [spinning, setSpinning] = useState(false);
   const intervalRef = useRef(null);
+  const { s } = useLanguage();
+  const { randomProject } = s;
 
   const roll = () => {
     if (spinning) return;
@@ -73,21 +76,21 @@ export default function RandomProjectButton() {
 
   return (
     <div className="random-project-cta">
-      <p className="random-project-cta__title">Conheça outro projeto meu</p>
+      <p className="random-project-cta__title">{randomProject.title}</p>
       <button
         type="button"
         className="random-project"
         onClick={roll}
         disabled={spinning}
-        aria-label="Rolar o dado e abrir um projeto aleatório em uma nova aba"
+        aria-label={randomProject.aria}
       >
         <span className={`random-project__dice${spinning ? " is-spinning" : ""}`}>
           <DiceFace face={face} />
         </span>
         <span className="random-project__text">
-          <span className="random-project__title">Surpreenda-me</span>
+          <span className="random-project__title">{randomProject.cta}</span>
           <span className="random-project__hint">
-            {spinning ? "sorteando…" : "um projeto ao acaso ↗"}
+            {spinning ? randomProject.rolling : randomProject.hint}
           </span>
         </span>
       </button>

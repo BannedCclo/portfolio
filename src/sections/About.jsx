@@ -1,102 +1,144 @@
 import { useEffect } from "react";
 import { initAbout } from "../lib/sections/about.js";
+import { useLanguage } from "../lib/i18n/LanguageContext.jsx";
 import retrato from "../assets/eu/retrato.jpg";
 import "./About.css";
 
-// Link institucional de cada marco — usado por tl__where para destacar o nome
-// da instituição em laranja (--copper) e linkar para o site oficial.
-const INSTITUTIONS = {
-  Buddys: "https://buddys-programadores-do-futuro.webflow.io/",
-  COTEMIG: "https://www.cotemig.com.br/",
-  NoHarm: "https://noharm.ai/",
-  "PUC-MG": "https://www.pucminas.br/",
-  "curso online":
-    "https://www.coursera.org/learn/ciencia-computacao-python-conceitos/",
+// Link institucional de cada marco — usado por renderWhere para destacar o
+// nome da instituição em laranja (--copper) e linkar para o site oficial.
+// Chaveado por id estável (não pelo texto exibido), já que o texto muda
+// conforme o idioma mas o link, não.
+const INSTITUTION_LINKS = {
+  buddys: "https://buddys-programadores-do-futuro.webflow.io/",
+  uspOnline: "https://www.coursera.org/learn/ciencia-computacao-python-conceitos/",
+  cotemig: "https://www.cotemig.com.br/",
+  noharm: "https://noharm.ai/",
+  pucmg: "https://www.pucminas.br/",
 };
 
 // CONTEÚDO PLACEHOLDER — substituir a trajetória por dados reais.
+// `where` mistura texto simples com `{ id, text }` (id aponta pra
+// INSTITUTION_LINKS, text é o nome exibido nesse idioma).
 const TIMELINE = [
   {
     when: "2015",
-    what: "Introdução",
-    where: [
-      "Aos 8 anos, desenvolvi meu primeiro interesse pela área e comecei a aprender na escola ",
-      "Buddys",
-      ".",
-    ],
+    what: { pt: "Introdução", en: "Introduction" },
+    where: {
+      pt: [
+        "Aos 8 anos, desenvolvi meu primeiro interesse pela área e comecei a aprender na escola ",
+        { id: "buddys", text: "Buddys" },
+        ".",
+      ],
+      en: [
+        "At age 8, I developed my first interest in the field and started learning at ",
+        { id: "buddys", text: "Buddys" },
+        " school.",
+      ],
+    },
   },
   {
     when: "2021",
-    what: "Estudos autônomos",
-    where: [
-      "Na quarentena, retomei meus estudos na área com um ",
-      "curso online",
-      " da USP, de Python.",
-    ],
+    what: { pt: "Estudos autônomos", en: "Autonomous studies" },
+    where: {
+      pt: [
+        "Na quarentena, retomei meus estudos na área com um ",
+        { id: "uspOnline", text: "curso online" },
+        " da USP, de Python.",
+      ],
+      en: [
+        "During quarantine, I resumed my studies in the field with an ",
+        { id: "uspOnline", text: "online course" },
+        " from USP, in Python.",
+      ],
+    },
   },
   {
     when: "2023",
-    what: "Curso técnico",
-    where: [
-      "Tomei um passo maior e concluí meu ensino médio no curso técnico em informática ",
-      "COTEMIG",
-      ".",
-    ],
+    what: { pt: "Curso técnico", en: "Technical course" },
+    where: {
+      pt: [
+        "Tomei um passo maior e concluí meu ensino médio no curso técnico em informática ",
+        { id: "cotemig", text: "COTEMIG" },
+        ".",
+      ],
+      en: [
+        "I took a bigger step and finished high school in the technical IT program at ",
+        { id: "cotemig", text: "COTEMIG" },
+        ".",
+      ],
+    },
   },
   {
     when: "2023",
-    what: "Estágio",
-    where: ["Na ", "NoHarm", ", estagiei como desenvolvedor de testes unitários Python."],
+    what: { pt: "Estágio", en: "Internship" },
+    where: {
+      pt: [
+        "Na ",
+        { id: "noharm", text: "NoHarm" },
+        ", estagiei como desenvolvedor de testes unitários Python.",
+      ],
+      en: [
+        "At ",
+        { id: "noharm", text: "NoHarm" },
+        ", I interned as a Python unit test developer.",
+      ],
+    },
   },
   {
     when: "2025",
-    what: "Universidade",
-    where: [
-      "Buscando ampliar minhas capacidades, ingressei na ",
-      "PUC-MG",
-      ", para Engenharia de Software.",
-    ],
+    what: { pt: "Universidade", en: "University" },
+    where: {
+      pt: [
+        "Buscando ampliar minhas capacidades, ingressei na ",
+        { id: "pucmg", text: "PUC-MG" },
+        ", para Engenharia de Software.",
+      ],
+      en: [
+        "Looking to expand my skills, I enrolled at ",
+        { id: "pucmg", text: "PUC-MG" },
+        " for Software Engineering.",
+      ],
+    },
   },
 ];
 
 // Marcos com trecho institucional destacam a instituição em `<mark>` — link
-// quando há URL confirmada, span quando ainda não há (Buddys). Marcos sem
-// instituição continuam string simples, sem passar por isto.
-function renderWhere(where) {
-  if (typeof where === "string") return where;
-  const [before, institution, after] = where;
-  const href = INSTITUTIONS[institution];
-  return (
-    <>
-      {before}
-      {href ? (
-        <a
-          className="tl__institution"
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {institution}
-        </a>
-      ) : (
-        <span className="tl__institution">{institution}</span>
-      )}
-      {after}
-    </>
-  );
+// quando há URL confirmada, span quando ainda não há. Partes simples (string)
+// passam direto.
+function renderWhere(parts) {
+  return parts.map((part, i) => {
+    if (typeof part === "string") return <span key={i}>{part}</span>;
+    const href = INSTITUTION_LINKS[part.id];
+    return href ? (
+      <a
+        key={i}
+        className="tl__institution"
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+      >
+        {part.text}
+      </a>
+    ) : (
+      <span key={i} className="tl__institution">
+        {part.text}
+      </span>
+    );
+  });
 }
 
 export default function About() {
   useEffect(() => initAbout(), []);
+  const { lang, s } = useLanguage();
 
   return (
     <section id="sobre" className="block layer">
       <div className="block__head fade-in">
         <span className="block__label" data-index="01">
-          Sobre
+          {s.about.label}
         </span>
         <div>
-          <h2 className="block__title">Conheça a minha trajetória.</h2>
+          <h2 className="block__title">{s.about.title}</h2>
         </div>
       </div>
 
@@ -104,27 +146,19 @@ export default function About() {
         {/* CONTEÚDO PLACEHOLDER — bio em primeira pessoa. */}
         <div className="about__bio fade-in">
           <div className="about__portrait">
-            <img src={retrato} alt="Retrato de Marcelo Guimarães" />
+            <img src={retrato} alt={s.about.portraitAlt} />
           </div>
-          <p>
-            Desde criança, sempre gostei de entender como as coisas funcionam.
-            Por isso, acabei me interessando por programação, também incentivado
-            por grandes referências da área que tenho na família.
-          </p>
-          <p>
-            Hoje em dia, quanto mais eu aprendo, mais eu percebo que estou na
-            área certa para mim, e que ainda tenho muito a aprender. Por isso,
-            busco sempre me aprimorar, estudando, praticando e me inspirando em
-            pessoas que admiro.
-          </p>
+          {s.about.bio.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
         </div>
 
         <ol className="timeline">
-          {TIMELINE.map((t) => (
-            <li className="tl" key={t.when}>
+          {TIMELINE.map((t, i) => (
+            <li className="tl" key={i}>
               <p className="tl__when">{t.when}</p>
-              <h3 className="tl__what">{t.what}</h3>
-              <p className="tl__where">{renderWhere(t.where)}</p>
+              <h3 className="tl__what">{t.what[lang]}</h3>
+              <p className="tl__where">{renderWhere(t.where[lang])}</p>
             </li>
           ))}
         </ol>

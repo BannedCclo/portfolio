@@ -837,6 +837,14 @@ export function initHero() {
         stageEl.style.filter = "none";
         lastFilter = "none";
         scene.fog.near = FOG_NEAR_REST;
+      } else if (reduceMotion) {
+        // Under reduced motion the blur is a fixed, permanent softness (see
+        // STATIC_BLUR_PX) rather than something update()/updateStatic() ever
+        // sets frame to frame — so unlike the dynamic path, it has to be
+        // reapplied explicitly here every time the hero goes active again,
+        // or scrolling away and back would leave it sharp for good.
+        stageEl.style.filter = `blur(${STATIC_BLUR_PX}px)`;
+        lastFilter = `blur(${STATIC_BLUR_PX}px)`;
       }
 
       // Vignette/fade-bottom/exit-fade are only ever turned OFF from inside
